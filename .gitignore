@@ -1,0 +1,19 @@
+# --- datasets (MNIST / Fashion-MNIST raw) ---
+data/
+
+# --- model artifacts ---
+*.pt
+*.pth
+*.npy
+*.npz
+
+# --- python ---
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+.ipynb_checkpoints/
+
+# --- os / editor ---
+.DS_Store
+Thumbs.db

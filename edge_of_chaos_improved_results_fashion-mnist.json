@@ -1,0 +1,420 @@
+{
+  "timestamp": "2025-11-09T01:18:35.989629",
+  "dataset": "Fashion-MNIST",
+  "best_configuration": {
+    "dataset": "Fashion-MNIST",
+    "r": 3.25,
+    "strength": 0.05,
+    "accuracy": 87.72
+  },
+  "results": [
+    {
+      "experiment": "fine_tune_r",
+      "dataset": "Fashion-MNIST",
+      "r": 3.0,
+      "regime": "transition",
+      "accuracy": 87.33,
+      "final_loss": 0.29327664337259657
+    },
+    {
+      "experiment": "fine_tune_r",
+      "dataset": "Fashion-MNIST",
+      "r": 3.05,
+      "regime": "transition",
+      "accuracy": 87.45,
+      "final_loss": 0.29605365338477685
+    },
+    {
+      "experiment": "fine_tune_r",
+      "dataset": "Fashion-MNIST",
+      "r": 3.1,
+      "regime": "transition",
+      "accuracy": 87.58,
+      "final_loss": 0.2968698921355795
+    },
+    {
+      "experiment": "fine_tune_r",
+      "dataset": "Fashion-MNIST",
+      "r": 3.15,
+      "regime": "transition",
+      "accuracy": 87.69,
+      "final_loss": 0.29902014922588427
+    },
+    {
+      "experiment": "fine_tune_r",
+      "dataset": "Fashion-MNIST",
+      "r": 3.2,
+      "regime": "transition",
+      "accuracy": 85.89,
+      "final_loss": 0.3015988261775768
+    },
+    {
+      "experiment": "fine_tune_r",
+      "dataset": "Fashion-MNIST",
+      "r": 3.25,
+      "regime": "transition",
+      "accuracy": 87.6,
+      "final_loss": 0.3029728609830775
+    },
+    {
+      "experiment": "fine_tune_r",
+      "dataset": "Fashion-MNIST",
+      "r": 3.3,
+      "regime": "transition",
+      "accuracy": 87.89,
+      "final_loss": 0.30184964582006985
+    },
+    {
+      "experiment": "fine_tune_r",
+      "dataset": "Fashion-MNIST",
+      "r": 3.35,
+      "regime": "transition",
+      "accuracy": 87.25,
+      "final_loss": 0.3035010970653372
+    },
+    {
+      "experiment": "fine_tune_r",
+      "dataset": "Fashion-MNIST",
+      "r": 3.4,
+      "regime": "transition",
+      "accuracy": 86.67,
+      "final_loss": 0.30278525986569993
+    },
+    {
+      "experiment": "fine_tune_r",
+      "dataset": "Fashion-MNIST",
+      "r": 3.45,
+      "regime": "transition",
+      "accuracy": 87.71,
+      "final_loss": 0.2990285427012342
+    },
+    {
+      "experiment": "fine_tune_r",
+      "dataset": "Fashion-MNIST",
+      "r": 3.5,
+      "regime": "transition",
+      "accuracy": 87.34,
+      "final_loss": 0.3019239881571303
+    },
+    {
+      "experiment": "chaos_strength",
+      "dataset": "Fashion-MNIST",
+      "r": 3.2,
+      "strength": 0.0,
+      "accuracy": 87.82,
+      "final_loss": 0.2979639194747235
+    },
+    {
+      "experiment": "chaos_strength",
+      "dataset": "Fashion-MNIST",
+      "r": 3.2,
+      "strength": 0.05,
+      "accuracy": 87.74,
+      "final_loss": 0.293841789187269
+    },
+    {
+      "experiment": "chaos_strength",
+      "dataset": "Fashion-MNIST",
+      "r": 3.2,
+      "strength": 0.1,
+      "accuracy": 87.87,
+      "final_loss": 0.29779961350116324
+    },
+    {
+      "experiment": "chaos_strength",
+      "dataset": "Fashion-MNIST",
+      "r": 3.2,
+      "strength": 0.15,
+      "accuracy": 87.29,
+      "final_loss": 0.30161431920021137
+    },
+    {
+      "experiment": "chaos_strength",
+      "dataset": "Fashion-MNIST",
+      "r": 3.2,
+      "strength": 0.2,
+      "accuracy": 87.43,
+      "final_loss": 0.30943404340997654
+    },
+    {
+      "experiment": "chaos_strength",
+      "dataset": "Fashion-MNIST",
+      "r": 3.2,
+      "strength": 0.3,
+      "accuracy": 87.13,
+      "final_loss": 0.3100067385967742
+    },
+    {
+      "experiment": "chaos_strength",
+      "dataset": "Fashion-MNIST",
+      "r": 3.2,
+      "strength": 0.5,
+      "accuracy": 86.48,
+      "final_loss": 0.3314071596302885
+    },
+    {
+      "experiment": "layer_specific",
+      "dataset": "Fashion-MNIST",
+      "r": 3.2,
+      "strength": 0.1,
+      "chaos_layers": "None",
+      "layer_config": "All layers",
+      "accuracy": 87.43,
+      "final_loss": 0.3006328635393305
+    },
+    {
+      "experiment": "layer_specific",
+      "dataset": "Fashion-MNIST",
+      "r": 3.2,
+      "strength": 0.1,
+      "chaos_layers": "[0]",
+      "layer_config": "First layer only",
+      "accuracy": 86.39,
+      "final_loss": 0.30261153534371804
+    },
+    {
+      "experiment": "layer_specific",
+      "dataset": "Fashion-MNIST",
+      "r": 3.2,
+      "strength": 0.1,
+      "chaos_layers": "[1]",
+      "layer_config": "Second layer only",
+      "accuracy": 87.45,
+      "final_loss": 0.29662225785407614
+    },
+    {
+      "experiment": "layer_specific",
+      "dataset": "Fashion-MNIST",
+      "r": 3.2,
+      "strength": 0.1,
+      "chaos_layers": "[0, 1]",
+      "layer_config": "Both layers",
+      "accuracy": 87.5,
+      "final_loss": 0.2953985308713101
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.1,
+      "strength": 0.05,
+      "accuracy": 87.61,
+      "final_loss": 0.29416681014476936
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.1,
+      "strength": 0.1,
+      "accuracy": 87.26,
+      "final_loss": 0.30391708840715126
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.1,
+      "strength": 0.15,
+      "accuracy": 86.95,
+      "final_loss": 0.3089923802842485
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.1,
+      "strength": 0.2,
+      "accuracy": 86.68,
+      "final_loss": 0.30625944822392565
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.15,
+      "strength": 0.05,
+      "accuracy": 87.21,
+      "final_loss": 0.30036858649964027
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.15,
+      "strength": 0.1,
+      "accuracy": 86.52,
+      "final_loss": 0.2996417818551368
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.15,
+      "strength": 0.15,
+      "accuracy": 87.21,
+      "final_loss": 0.30062360573322217
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.15,
+      "strength": 0.2,
+      "accuracy": 86.93,
+      "final_loss": 0.31217335158206044
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.2,
+      "strength": 0.05,
+      "accuracy": 87.44,
+      "final_loss": 0.29771131391220906
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.2,
+      "strength": 0.1,
+      "accuracy": 87.6,
+      "final_loss": 0.2999527285073666
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.2,
+      "strength": 0.15,
+      "accuracy": 87.46,
+      "final_loss": 0.30547683036073725
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.2,
+      "strength": 0.2,
+      "accuracy": 87.4,
+      "final_loss": 0.30595487742982014
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.25,
+      "strength": 0.05,
+      "accuracy": 87.72,
+      "final_loss": 0.2999553153489498
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.25,
+      "strength": 0.1,
+      "accuracy": 86.78,
+      "final_loss": 0.3009719022410981
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.25,
+      "strength": 0.15,
+      "accuracy": 86.92,
+      "final_loss": 0.3006215957885093
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.25,
+      "strength": 0.2,
+      "accuracy": 85.81,
+      "final_loss": 0.31102180011728975
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.3,
+      "strength": 0.05,
+      "accuracy": 86.8,
+      "final_loss": 0.30098278909287557
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.3,
+      "strength": 0.1,
+      "accuracy": 87.44,
+      "final_loss": 0.30436012497607695
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.3,
+      "strength": 0.15,
+      "accuracy": 87.1,
+      "final_loss": 0.30252508394261624
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.3,
+      "strength": 0.2,
+      "accuracy": 87.4,
+      "final_loss": 0.311313367333818
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.35,
+      "strength": 0.05,
+      "accuracy": 86.88,
+      "final_loss": 0.29720078510172826
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.35,
+      "strength": 0.1,
+      "accuracy": 85.66,
+      "final_loss": 0.3065663276834691
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.35,
+      "strength": 0.15,
+      "accuracy": 87.6,
+      "final_loss": 0.30308538776762944
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.35,
+      "strength": 0.2,
+      "accuracy": 87.2,
+      "final_loss": 0.3094100779675423
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.4,
+      "strength": 0.05,
+      "accuracy": 87.36,
+      "final_loss": 0.29959070124524706
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.4,
+      "strength": 0.1,
+      "accuracy": 87.43,
+      "final_loss": 0.30057145439563915
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.4,
+      "strength": 0.15,
+      "accuracy": 87.7,
+      "final_loss": 0.3029474045367951
+    },
+    {
+      "experiment": "optimal_combination",
+      "dataset": "Fashion-MNIST",
+      "r": 3.4,
+      "strength": 0.2,
+      "accuracy": 86.67,
+      "final_loss": 0.3109456293760462
+    }
+  ]
+}

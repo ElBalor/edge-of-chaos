@@ -1,0 +1,875 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ghost-Lattice QNN · BCI Demo</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #05070d;
+        color: #e6f1ff;
+        font-family: "JetBrains Mono", "Fira Code", monospace;
+      }
+      #app {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+      }
+      #canvas {
+        position: absolute;
+        inset: 0;
+      }
+
+      #header {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 16px 24px;
+        z-index: 10;
+        background: linear-gradient(
+          180deg,
+          rgba(5, 7, 13, 0.95) 0%,
+          rgba(5, 7, 13, 0) 100%
+        );
+        pointer-events: none;
+      }
+      #header h1 {
+        font-size: 18px;
+        letter-spacing: 2px;
+        color: #00ffc8;
+        font-weight: 500;
+      }
+      #header .sub {
+        font-size: 11px;
+        color: #6b93c7;
+        margin-top: 4px;
+        letter-spacing: 1px;
+      }
+
+      #footer {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 14px 24px;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        background: linear-gradient(
+          0deg,
+          rgba(5, 7, 13, 0.95) 0%,
+          rgba(5, 7, 13, 0) 100%
+        );
+      }
+      button {
+        background: rgba(0, 255, 200, 0.08);
+        color: #00ffc8;
+        border: 1px solid #00ffc8;
+        padding: 8px 16px;
+        font-family: inherit;
+        font-size: 12px;
+        letter-spacing: 1px;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: all 0.15s;
+        text-transform: uppercase;
+      }
+      button:hover {
+        background: rgba(0, 255, 200, 0.2);
+        box-shadow: 0 0 12px rgba(0, 255, 200, 0.4);
+      }
+      button.stop {
+        color: #ff4444;
+        border-color: #ff4444;
+        background: rgba(255, 68, 68, 0.08);
+      }
+      button.stop:hover {
+        background: rgba(255, 68, 68, 0.25);
+        box-shadow: 0 0 12px rgba(255, 68, 68, 0.6);
+      }
+      button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+
+      .status {
+        font-size: 11px;
+        letter-spacing: 1px;
+        padding: 6px 12px;
+        border-radius: 4px;
+        margin-left: auto;
+        border: 1px solid;
+      }
+      .status.nominal {
+        color: #00ffc8;
+        border-color: #00ffc8;
+        background: rgba(0, 255, 200, 0.06);
+      }
+      .status.cut {
+        color: #ff4444;
+        border-color: #ff4444;
+        background: rgba(255, 68, 68, 0.15);
+        animation: pulse 0.4s infinite alternate;
+      }
+      @keyframes pulse {
+        from {
+          box-shadow: 0 0 0px rgba(255, 68, 68, 0.4);
+        }
+        to {
+          box-shadow: 0 0 20px rgba(255, 68, 68, 0.9);
+        }
+      }
+
+      .metric {
+        font-size: 11px;
+        color: #6b93c7;
+        letter-spacing: 1px;
+      }
+      .metric span {
+        color: #00ffc8;
+      }
+
+      #stopBanner {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        padding: 24px 48px;
+        border: 3px solid #ff4444;
+        background: rgba(5, 7, 13, 0.9);
+        color: #ff4444;
+        font-size: 32px;
+        letter-spacing: 8px;
+        font-weight: bold;
+        text-transform: uppercase;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s;
+        z-index: 20;
+        box-shadow: 0 0 40px rgba(255, 68, 68, 0.6);
+      }
+      #stopBanner.active {
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="canvas"></canvas>
+
+      <div id="header">
+        <h1>GHOST-LATTICE QNN · BCI DEMO</h1>
+        <div class="sub">
+          Elbalor & Arinze · The Digital Necromancer & The Technomancer ·
+          29-Qubit Ising Reservoir + AlienX Manifold
+        </div>
+      </div>
+
+      <div id="stopBanner">⚡ MOTORS CUT ⚡</div>
+
+      <div id="footer">
+        <button id="btnPlay">▶ Play</button>
+        <button id="btnPause">⏸ Pause</button>
+        <button id="btnEmg" class="stop">⚡ EMG Stop</button>
+        <div class="metric">T = <span id="mt">0.00</span>s</div>
+        <div class="metric">Qubits <span id="mq">0</span>/29</div>
+        <div class="metric">Chair <span id="mc">(0.0, 0.0)</span></div>
+        <div id="status" class="status nominal">MOTOR · NOMINAL</div>
+      </div>
+    </div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      // ────────────────────────────────────────────────────────────
+      //  SCENE
+      // ────────────────────────────────────────────────────────────
+      const canvas = document.getElementById("canvas");
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setClearColor(0x05070d);
+
+      const scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x05070d, 0.018);
+
+      const camera = new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        200,
+      );
+      camera.position.set(0, 6, 20);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.target.set(0, 2.5, 0);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.08;
+      controls.minDistance = 8;
+      controls.maxDistance = 40;
+
+      // lights
+      scene.add(new THREE.AmbientLight(0x404a6a, 0.9));
+      const key = new THREE.DirectionalLight(0xa8d8ff, 1.1);
+      key.position.set(6, 12, 8);
+      scene.add(key);
+      const rim = new THREE.DirectionalLight(0xff2266, 0.4);
+      rim.position.set(-8, 4, -6);
+      scene.add(rim);
+
+      // starfield
+      (function stars() {
+        const g = new THREE.BufferGeometry();
+        const n = 800;
+        const pos = new Float32Array(n * 3);
+        for (let i = 0; i < n; i++) {
+          pos[i * 3 + 0] = (Math.random() - 0.5) * 120;
+          pos[i * 3 + 1] = (Math.random() - 0.5) * 80;
+          pos[i * 3 + 2] = (Math.random() - 0.5) * 120 - 20;
+        }
+        g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+        scene.add(
+          new THREE.Points(
+            g,
+            new THREE.PointsMaterial({
+              color: 0x4a6fa5,
+              size: 0.12,
+              transparent: true,
+              opacity: 0.6,
+            }),
+          ),
+        );
+      })();
+
+      // ────────────────────────────────────────────────────────────
+      //  SECTION A — EEG SCALP  (left, x ≈ -7)
+      // ────────────────────────────────────────────────────────────
+      const HEAD_X = -7;
+      const headGroup = new THREE.Group();
+      headGroup.position.set(HEAD_X, 2.5, 0);
+      scene.add(headGroup);
+
+      // head ellipsoid
+      const headGeo = new THREE.SphereGeometry(1.0, 48, 32);
+      headGeo.scale(1.0, 1.18, 1.3);
+      const headMat = new THREE.MeshPhysicalMaterial({
+        color: 0x1a2b4c,
+        roughness: 0.6,
+        metalness: 0.1,
+        transparent: true,
+        opacity: 0.35,
+        transmission: 0.4,
+        clearcoat: 0.3,
+      });
+      headGroup.add(new THREE.Mesh(headGeo, headMat));
+
+      // wireframe overlay
+      const wireGeo = new THREE.SphereGeometry(1.001, 24, 16);
+      wireGeo.scale(1.0, 1.18, 1.3);
+      headGroup.add(
+        new THREE.Mesh(
+          wireGeo,
+          new THREE.MeshBasicMaterial({
+            color: 0x2d4a7a,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.25,
+          }),
+        ),
+      );
+
+      // 22 electrode positions
+      const posDeg = [
+        [0, 80],
+        [36, 65],
+        [-36, 65],
+        [72, 40],
+        [-72, 40],
+        [108, 65],
+        [-108, 65],
+        [144, 80],
+        [-144, 80],
+        [0, 20],
+        [45, 10],
+        [-45, 10],
+        [90, 20],
+        [-90, 20],
+        [135, 10],
+        [-135, 10],
+        [180, 20],
+        [22, 45],
+        [-22, 45],
+        [0, -10],
+        [60, -10],
+        [-60, -10],
+      ];
+      function headPt(azDeg, elDeg, r = 1.02) {
+        const az = (azDeg * Math.PI) / 180,
+          el = (elDeg * Math.PI) / 180;
+        return new THREE.Vector3(
+          r * Math.cos(el) * Math.cos(az),
+          r * 1.18 * Math.sin(el),
+          r * 1.3 * Math.cos(el) * Math.sin(az),
+        );
+      }
+      const electrodeMeshes = [];
+      const electrodePositions = [];
+      for (let i = 0; i < posDeg.length; i++) {
+        const p = headPt(posDeg[i][0], posDeg[i][1]);
+        electrodePositions.push(p);
+        const geo = new THREE.SphereGeometry(0.06, 12, 10);
+        const mat = new THREE.MeshStandardMaterial({
+          color: 0x2d4a7a,
+          emissive: 0x2d4a7a,
+          emissiveIntensity: 0.5,
+        });
+        const m = new THREE.Mesh(geo, mat);
+        m.position.copy(p);
+        headGroup.add(m);
+        electrodeMeshes.push(m);
+
+        // σ-sphere (scale halo)
+        const halo = new THREE.Mesh(
+          new THREE.SphereGeometry(0.11, 12, 8),
+          new THREE.MeshBasicMaterial({
+            color: 0x4a90c2,
+            transparent: true,
+            opacity: 0.15,
+            wireframe: true,
+          }),
+        );
+        halo.position.copy(p);
+        headGroup.add(halo);
+      }
+
+      // small label
+      function makeLabel(text, x, y, z, color = "#00ffc8") {
+        const c = document.createElement("canvas");
+        c.width = 512;
+        c.height = 64;
+        const ctx = c.getContext("2d");
+        ctx.font = "bold 32px monospace";
+        ctx.fillStyle = color;
+        ctx.textAlign = "center";
+        ctx.fillText(text, 256, 44);
+        const tex = new THREE.CanvasTexture(c);
+        const spr = new THREE.Sprite(
+          new THREE.SpriteMaterial({
+            map: tex,
+            transparent: true,
+            depthTest: false,
+          }),
+        );
+        spr.position.set(x, y, z);
+        spr.scale.set(3, 0.375, 1);
+        return spr;
+      }
+      scene.add(makeLabel("EEG · 22 CH", HEAD_X, 5.0, 0));
+
+      // ────────────────────────────────────────────────────────────
+      //  SECTION B — 29-QUBIT ISING RESERVOIR  (center, x ≈ 0)
+      // ────────────────────────────────────────────────────────────
+      const QNN_X = 0;
+      const N_QUBITS = 29;
+      const qubitGroup = new THREE.Group();
+      qubitGroup.position.set(QNN_X, 2.5, 0);
+      scene.add(qubitGroup);
+
+      // Fibonacci sphere
+      function fibSphere(n) {
+        const pts = [];
+        const phi = Math.PI * (3 - Math.sqrt(5));
+        for (let i = 0; i < n; i++) {
+          const y = 1 - (i / (n - 1)) * 2;
+          const r = Math.sqrt(1 - y * y);
+          const theta = phi * i;
+          pts.push(
+            new THREE.Vector3(Math.cos(theta) * r, y, Math.sin(theta) * r),
+          );
+        }
+        return pts;
+      }
+      const qPos = fibSphere(N_QUBITS).map((v) => v.multiplyScalar(1.6));
+
+      // couplings
+      const J = [];
+      for (let i = 0; i < N_QUBITS; i++) {
+        J.push([]);
+        for (let j = 0; j < N_QUBITS; j++) J[i].push(0);
+      }
+      for (let i = 0; i < N_QUBITS; i++) {
+        for (let j = i + 1; j < N_QUBITS; j++) {
+          const v = (Math.random() - 0.5) * 0.3;
+          J[i][j] = v;
+          J[j][i] = v;
+        }
+      }
+      const h = Array.from(
+        { length: N_QUBITS },
+        () => (Math.random() - 0.5) * 0.6,
+      );
+      const W_in = Array.from(
+        { length: N_QUBITS },
+        () => (Math.random() - 0.5) * 0.8,
+      );
+
+      // edges
+      const edgePairs = [];
+      const absJ = [];
+      for (let i = 0; i < N_QUBITS; i++)
+        for (let j = i + 1; j < N_QUBITS; j++) absJ.push(Math.abs(J[i][j]));
+      absJ.sort((a, b) => b - a);
+      const thr = absJ[Math.floor(absJ.length * 0.12)];
+
+      const edgeMat = new THREE.LineBasicMaterial({
+        color: 0x4a90c2,
+        transparent: true,
+        opacity: 0.35,
+      });
+      for (let i = 0; i < N_QUBITS; i++) {
+        for (let j = i + 1; j < N_QUBITS; j++) {
+          if (Math.abs(J[i][j]) > thr) {
+            const g = new THREE.BufferGeometry().setFromPoints([
+              qPos[i],
+              qPos[j],
+            ]);
+            qubitGroup.add(new THREE.Line(g, edgeMat));
+            edgePairs.push([i, j]);
+          }
+        }
+      }
+
+      // qubit spheres
+      const qubitMeshes = [];
+      for (let i = 0; i < N_QUBITS; i++) {
+        const geo = new THREE.SphereGeometry(0.14, 20, 16);
+        const mat = new THREE.MeshStandardMaterial({
+          color: 0x2d4a7a,
+          emissive: 0x2d4a7a,
+          emissiveIntensity: 0.4,
+        });
+        const m = new THREE.Mesh(geo, mat);
+        m.position.copy(qPos[i]);
+        qubitGroup.add(m);
+        qubitMeshes.push(m);
+      }
+
+      // glow sphere around QNN
+      const glowGeo = new THREE.SphereGeometry(2.0, 32, 24);
+      const glowMat = new THREE.MeshBasicMaterial({
+        color: 0x00ffc8,
+        transparent: true,
+        opacity: 0.04,
+        wireframe: true,
+      });
+      qubitGroup.add(new THREE.Mesh(glowGeo, glowMat));
+
+      scene.add(makeLabel("QNN · 29 QUBITS", QNN_X, 5.0, 0, "#00ffc8"));
+
+      // ────────────────────────────────────────────────────────────
+      //  SECTION C — WHEELCHAIR & OBSTACLE  (right, x ≈ 7)
+      // ────────────────────────────────────────────────────────────
+      const CHAIR_X = 7;
+      const chairGroup = new THREE.Group();
+      chairGroup.position.set(CHAIR_X, 0, 0);
+      scene.add(chairGroup);
+
+      // floor grid
+      const grid = new THREE.GridHelper(8, 16, 0x1a2b4c, 0x0f1c34);
+      grid.position.y = 0.01;
+      chairGroup.add(grid);
+
+      // floor plane (subtle)
+      const floor = new THREE.Mesh(
+        new THREE.PlaneGeometry(8, 8),
+        new THREE.MeshStandardMaterial({
+          color: 0x0a0f1c,
+          roughness: 0.9,
+          metalness: 0.1,
+        }),
+      );
+      floor.rotation.x = -Math.PI / 2;
+      chairGroup.add(floor);
+
+      // obstacle (singularity)
+      const obstacle = new THREE.Mesh(
+        new THREE.SphereGeometry(0.55, 32, 24),
+        new THREE.MeshStandardMaterial({
+          color: 0xff4444,
+          emissive: 0xc1121f,
+          emissiveIntensity: 0.6,
+          roughness: 0.4,
+          metalness: 0.3,
+        }),
+      );
+      obstacle.position.set(0.6, 0.55, 0);
+      chairGroup.add(obstacle);
+
+      // stress ring around obstacle (grows when chair approaches)
+      const stressRing = new THREE.Mesh(
+        new THREE.TorusGeometry(0.9, 0.03, 12, 48),
+        new THREE.MeshBasicMaterial({
+          color: 0xff8844,
+          transparent: true,
+          opacity: 0.7,
+        }),
+      );
+      stressRing.rotation.x = -Math.PI / 2;
+      stressRing.position.set(0.6, 0.05, 0);
+      chairGroup.add(stressRing);
+
+      // wheelchair
+      const wheelchair = new THREE.Group();
+      chairGroup.add(wheelchair);
+
+      const chairBody = new THREE.Mesh(
+        new THREE.BoxGeometry(0.5, 0.7, 0.7),
+        new THREE.MeshStandardMaterial({
+          color: 0x00ffc8,
+          emissive: 0x00ffc8,
+          emissiveIntensity: 0.35,
+          roughness: 0.4,
+          metalness: 0.5,
+        }),
+      );
+      chairBody.position.y = 0.55;
+      wheelchair.add(chairBody);
+
+      // wheels
+      const wheelGeo = new THREE.TorusGeometry(0.25, 0.06, 12, 24);
+      const wheelMat = new THREE.MeshStandardMaterial({
+        color: 0x1a2b4c,
+        roughness: 0.7,
+        metalness: 0.5,
+      });
+      const wheelL = new THREE.Mesh(wheelGeo, wheelMat);
+      wheelL.rotation.y = Math.PI / 2;
+      wheelL.position.set(-0.32, 0.3, 0);
+      wheelchair.add(wheelL);
+      const wheelR = new THREE.Mesh(wheelGeo, wheelMat);
+      wheelR.rotation.y = Math.PI / 2;
+      wheelR.position.set(0.32, 0.3, 0);
+      wheelchair.add(wheelR);
+
+      // goal marker
+      const goal = new THREE.Mesh(
+        new THREE.RingGeometry(0.3, 0.4, 32),
+        new THREE.MeshBasicMaterial({
+          color: 0xa8ff60,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.8,
+        }),
+      );
+      goal.rotation.x = -Math.PI / 2;
+      goal.position.set(2.2, 0.02, 1.2);
+      chairGroup.add(goal);
+
+      // trail
+      const trailPts = [];
+      const trailMax = 200;
+      const trailGeo = new THREE.BufferGeometry();
+      const trailPositions = new Float32Array(trailMax * 3);
+      trailGeo.setAttribute(
+        "position",
+        new THREE.BufferAttribute(trailPositions, 3),
+      );
+      trailGeo.setDrawRange(0, 0);
+      const trailLine = new THREE.Line(
+        trailGeo,
+        new THREE.LineBasicMaterial({ color: 0x00ffc8, linewidth: 2 }),
+      );
+      chairGroup.add(trailLine);
+
+      scene.add(makeLabel("ALIENX · CONFIG SPACE", CHAIR_X, 5.0, 0, "#a8d8ff"));
+
+      // ────────────────────────────────────────────────────────────
+      //  FLOW CONNECTORS  (data flow arrows between sections)
+      // ────────────────────────────────────────────────────────────
+      function makeFlowCurve(startVec, endVec) {
+        const mid = startVec.clone().add(endVec).multiplyScalar(0.5);
+        mid.y += 1.2;
+        const curve = new THREE.QuadraticBezierCurve3(startVec, mid, endVec);
+        return curve;
+      }
+      function makeFlow(start, end, color) {
+        const curve = makeFlowCurve(start, end);
+        const tube = new THREE.Mesh(
+          new THREE.TubeGeometry(curve, 40, 0.04, 8, false),
+          new THREE.MeshBasicMaterial({
+            color,
+            transparent: true,
+            opacity: 0.35,
+          }),
+        );
+        scene.add(tube);
+        // moving packet
+        const packet = new THREE.Mesh(
+          new THREE.SphereGeometry(0.1, 12, 10),
+          new THREE.MeshBasicMaterial({
+            color,
+            transparent: true,
+            opacity: 0.9,
+          }),
+        );
+        scene.add(packet);
+        return { curve, packet, t: 0 };
+      }
+      const flow1 = makeFlow(
+        new THREE.Vector3(HEAD_X + 1.4, 2.5, 0),
+        new THREE.Vector3(QNN_X - 2.2, 2.5, 0),
+        0x00ffc8,
+      );
+      const flow2 = makeFlow(
+        new THREE.Vector3(QNN_X + 2.2, 2.5, 0),
+        new THREE.Vector3(CHAIR_X - 1.4, 2.0, 0),
+        0x00ffc8,
+      );
+
+      // ────────────────────────────────────────────────────────────
+      //  SIMULATION STATE
+      // ────────────────────────────────────────────────────────────
+      const state = {
+        t: 0,
+        playing: true,
+        s: new Array(N_QUBITS).fill(0).map(() => Math.random() * 0.05),
+        eeg: new Array(22).fill(0),
+        eeg_filtered: 0,
+        emgStop: 0, // seconds remaining on stop
+        motorCut: false,
+        chairX: -2.6,
+        chairZ: -2.2,
+        chairVX: 0,
+        chairVZ: 0,
+        trailCount: 0,
+      };
+
+      // readout matrix (linear projection qubit state → velocity)
+      const M = [];
+      for (let i = 0; i < 2; i++) {
+        M.push([]);
+        for (let j = 0; j < N_QUBITS; j++)
+          M[i].push((Math.random() - 0.5) * 0.4);
+      }
+
+      // ────────────────────────────────────────────────────────────
+      //  ANIMATE
+      // ────────────────────────────────────────────────────────────
+      const clock = new THREE.Clock();
+
+      function simulate(dt) {
+        state.t += dt;
+
+        // ── EEG ─────────────────────────────────────────────
+        for (let i = 0; i < 22; i++) {
+          const phase = state.t * (0.8 + i * 0.07);
+          state.eeg[i] =
+            Math.sin(phase) * 0.5 +
+            Math.sin(phase * 3.1) * 0.2 +
+            (Math.random() - 0.5) * 0.15;
+        }
+        // project EEG to scalar
+        let eegScalar = 0;
+        for (let i = 0; i < 22; i++) eegScalar += state.eeg[i];
+        eegScalar /= 22;
+
+        // LNN lowpass
+        state.eeg_filtered = state.eeg_filtered * 0.9 + eegScalar * 0.1;
+
+        // EMG stop countdown
+        if (state.emgStop > 0) {
+          state.emgStop -= dt;
+          state.motorCut = true;
+        } else {
+          state.motorCut = false;
+        }
+
+        // ── Qubit mean-field ────────────────────────────────
+        const newS = new Array(N_QUBITS);
+        for (let i = 0; i < N_QUBITS; i++) {
+          let sum = h[i] + W_in[i] * state.eeg_filtered;
+          for (let j = 0; j < N_QUBITS; j++) sum += J[i][j] * state.s[j];
+          newS[i] = Math.tanh(sum);
+        }
+        state.s = newS;
+
+        // ── Readout ─────────────────────────────────────────
+        let vx = 0,
+          vz = 0;
+        for (let j = 0; j < N_QUBITS; j++) {
+          vx += M[0][j] * state.s[j];
+          vz += M[1][j] * state.s[j];
+        }
+        // obstacle avoidance (AlienX stress)
+        const dx = state.chairX - 0.6,
+          dz = state.chairZ - 0.0;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist < 1.3 && dist > 1e-4) {
+          const rep = (1.3 - dist) * 1.5;
+          vx += (dx / dist) * rep;
+          vz += (dz / dist) * rep;
+        }
+        // goal attraction (gentle)
+        vx += (2.2 - state.chairX) * 0.08;
+        vz += (1.2 - state.chairZ) * 0.08;
+
+        if (state.motorCut) {
+          vx = 0;
+          vz = 0;
+        }
+
+        state.chairVX = state.chairVX * 0.85 + vx * 0.15;
+        state.chairVZ = state.chairVZ * 0.85 + vz * 0.15;
+
+        state.chairX += state.chairVX * dt * 2;
+        state.chairZ += state.chairVZ * dt * 2;
+
+        state.chairX = Math.max(-3, Math.min(3, state.chairX));
+        state.chairZ = Math.max(-3, Math.min(3, state.chairZ));
+      }
+
+      function updateVisuals() {
+        // ── EEG electrodes ────────────────────────────────
+        for (let i = 0; i < 22; i++) {
+          const v = Math.abs(state.eeg[i]);
+          const mesh = electrodeMeshes[i];
+          mesh.material.emissiveIntensity = 0.3 + v * 1.5;
+          const c = new THREE.Color();
+          c.setHSL(0.55 - v * 0.5, 0.9, 0.25 + v * 0.4);
+          mesh.material.color.copy(c);
+          mesh.material.emissive.copy(c);
+        }
+
+        // ── Qubits ────────────────────────────────────────
+        for (let i = 0; i < N_QUBITS; i++) {
+          const v = state.s[i];
+          const mesh = qubitMeshes[i];
+          const c = new THREE.Color();
+          // red (hot) for positive, blue for negative
+          c.setHSL(0.6 - v * 0.55, 0.9, 0.3 + Math.abs(v) * 0.4);
+          mesh.material.color.copy(c);
+          mesh.material.emissive.copy(c);
+          mesh.material.emissiveIntensity = 0.4 + Math.abs(v) * 1.2;
+          const s = 0.14 + Math.abs(v) * 0.1;
+          mesh.scale.setScalar(s / 0.14);
+        }
+
+        // ── Wheelchair ────────────────────────────────────
+        wheelchair.position.set(state.chairX, 0, state.chairZ);
+        // face direction of motion
+        const dir = Math.atan2(state.chairVX, state.chairVZ);
+        wheelchair.rotation.y = dir;
+
+        // trail
+        if (state.trailCount < trailMax) {
+          const idx = state.trailCount;
+          trailPositions[idx * 3 + 0] = state.chairX;
+          trailPositions[idx * 3 + 1] = 0.1;
+          trailPositions[idx * 3 + 2] = state.chairZ;
+          trailLine.geometry.setDrawRange(0, idx + 1);
+          trailLine.geometry.attributes.position.needsUpdate = true;
+          state.trailCount++;
+        }
+
+        // stress ring
+        const dx = state.chairX - 0.6,
+          dz = state.chairZ - 0.0;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        const stress = Math.max(0, 1.0 - dist / 1.5);
+        stressRing.scale.setScalar(1.0 + stress * 0.8);
+        stressRing.material.opacity = 0.2 + stress * 0.7;
+        if (stress > 0.5) {
+          stressRing.material.color.setHex(0xff4444);
+        } else {
+          stressRing.material.color.setHex(0xff8844);
+        }
+
+        // ── Flow packets ──────────────────────────────────
+        flow1.t = (flow1.t + 0.012) % 1;
+        flow2.t = (flow2.t + 0.012) % 1;
+        flow1.packet.position.copy(flow1.curve.getPoint(flow1.t));
+        flow2.packet.position.copy(flow2.curve.getPoint(flow2.t));
+      }
+
+      function frame() {
+        const dt = Math.min(clock.getDelta(), 0.05);
+        if (state.playing) {
+          simulate(dt);
+          updateVisuals();
+        }
+        controls.update();
+        renderer.render(scene, camera);
+        requestAnimationFrame(frame);
+      }
+
+      // ────────────────────────────────────────────────────────────
+      //  UI
+      // ────────────────────────────────────────────────────────────
+      const btnPlay = document.getElementById("btnPlay");
+      const btnPause = document.getElementById("btnPause");
+      const btnEmg = document.getElementById("btnEmg");
+      const statusEl = document.getElementById("status");
+      const stopBanner = document.getElementById("stopBanner");
+
+      btnPlay.onclick = () => {
+        state.playing = true;
+      };
+      btnPause.onclick = () => {
+        state.playing = false;
+      };
+      btnEmg.onclick = () => {
+        state.emgStop = 1.2;
+        stopBanner.classList.add("active");
+        setTimeout(() => stopBanner.classList.remove("active"), 1200);
+      };
+
+      // HUD
+      const mt = document.getElementById("mt");
+      const mq = document.getElementById("mq");
+      const mc = document.getElementById("mc");
+      setInterval(() => {
+        mt.textContent = state.t.toFixed(2);
+        const active = state.s.filter((v) => Math.abs(v) > 0.15).length;
+        mq.textContent = active;
+        mc.textContent = `(${state.chairX.toFixed(1)}, ${state.chairZ.toFixed(1)})`;
+        if (state.motorCut) {
+          statusEl.className = "status cut";
+          statusEl.textContent = "MOTOR · CUT";
+        } else {
+          statusEl.className = "status nominal";
+          statusEl.textContent = "MOTOR · NOMINAL";
+        }
+      }, 100);
+
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      frame();
+    </script>
+  </body>
+</html>
