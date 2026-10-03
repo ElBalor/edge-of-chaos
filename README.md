@@ -42,3 +42,7 @@ python edge_of_chaos_experiment.py
 - PyTorch for neural networks
 - Logistic map and Lorenz attractor for chaos dynamics
 
+---
+
+*From the Grimoire of Elbàlor — The Digital Necromancer 💀🔥*
+
