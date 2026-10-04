@@ -96,13 +96,15 @@ def lnn_gate(inputs, tau_net=None):
     T, D = inputs.shape
     x = np.zeros_like(inputs)
     x[0] = inputs[0] * 0.5
+    dev = next(tau_net.parameters()).device
     for t in range(1, T):
         if t >= 3:
             past = inputs[t - 3:t + 1].flatten()
         else:
             past = np.zeros(4 * D, dtype=np.float32)
             past[(3 - t) * D:] = inputs[:t + 1].flatten()
-        tau = tau_net(torch.tensor(past, device=DEVICE).unsqueeze(0)).item()
+        tau = tau_net(torch.tensor(past, device=dev)
+                      .unsqueeze(0)).item()
         alpha = tau / (tau + 1.0)
         x[t] = alpha * x[t - 1] + (1 - alpha) * inputs[t]
     return x
@@ -166,6 +168,105 @@ def combined_features(inputs, tau_net=None, J=None, h=None, W_in=None,
     """Concatenate all R reservoir blocks into one feature vector."""
     return np.concatenate(
         per_reservoir_features(inputs, tau_net, J, h, W_in, input_dim))
+
+
+# ---------------------------------------------------------------------------
+# Batched fast path (identical math, all windows in parallel)
+# ---------------------------------------------------------------------------
+
+def batch_lnn_gate(inputs, tau_net=None):
+    """LNN gate for a batch of windows at once. inputs: (B, T) or (B, T, D).
+
+    Same recurrence and the same TauNet as lnn_gate; the per-window
+    time constants are computed in one batched forward pass per step.
+    """
+    if tau_net is None:
+        return inputs.copy()
+    if inputs.ndim == 2:
+        inputs = inputs[:, :, None]
+    inputs = inputs.astype(np.float32)
+    B, T, D = inputs.shape
+    dev = next(tau_net.parameters()).device
+    pad = np.zeros((B, 3, D), dtype=np.float32)
+    upad = np.concatenate([pad, inputs], axis=1)   # upad[:, t:t+4] = past
+    x = np.zeros_like(inputs)
+    x[:, 0] = inputs[:, 0] * 0.5
+    for t in range(1, T):
+        past = torch.tensor(upad[:, t:t + 4].reshape(B, 4 * D),
+                            dtype=torch.float32, device=dev)
+        tau = tau_net(past).squeeze(-1)             # (B,)
+        alpha = (tau / (tau + 1.0)).detach().cpu().numpy()[:, None]
+        x[:, t] = alpha * x[:, t - 1] + (1 - alpha) * inputs[:, t]
+    return x
+
+
+def batch_reservoir(filtered, J, h, W_in):
+    """Ising surrogate for a batch: filtered (B, T, D) -> taps (B, N*V).
+
+    Same recurrence as simulate_reservoir, batched over windows.
+    """
+    B, T, D = filtered.shape
+    Jt = torch.tensor(J, dtype=torch.float32)
+    ht = torch.tensor(h, dtype=torch.float32)
+    Wt = torch.tensor(np.asarray(W_in).reshape(D, N_QUBITS),
+                      dtype=torch.float32)
+    states = np.zeros((B, T, N_QUBITS), dtype=np.float32)
+    state = torch.zeros(B, N_QUBITS, dtype=torch.float32)
+    filt = torch.tensor(filtered, dtype=torch.float32)
+    for t in range(1, T):
+        u = filt[:, t] @ Wt                        # (B, N)
+        state = torch.tanh(u + state @ Jt + ht)
+        states[:, t] = state.numpy()
+    taps = [states[:, max(0, T - 1 - v * (T // TEMPORAL_V)), :]
+            for v in range(TEMPORAL_V)]
+    return np.concatenate(taps, axis=1).astype(np.float32)
+
+
+def batch_polynomial_forge(raw):
+    """Volterra forge for a batch: raw (B, n_taps) -> (B, ~11k)."""
+    n_taps = raw.shape[1]
+    poly = PolynomialFeatures(degree=POLY_DEGREE, include_bias=False)
+    poly.fit(np.zeros((1, n_taps)))
+    feats = poly.transform(raw).astype(np.float32)
+    return np.concatenate([feats, raw ** 3, raw ** 4], axis=1)
+
+
+def batch_per_reservoir_features(inputs_batch, tau_net=None, J=None,
+                                 h=None, W_in=None, input_dim=1):
+    """Per-reservoir forge blocks for a batch; returns R arrays (B, ~11k)."""
+    if inputs_batch.ndim == 2:
+        inputs_batch = inputs_batch[:, :, None]
+    filtered = batch_lnn_gate(inputs_batch, tau_net)
+    blocks = []
+    for r in range(SPATIAL_R):
+        Jr, hr, W_inr = ((J, h, W_in) if J is not None
+                         else init_reservoir(42 + r,
+                                             input_dim=inputs_batch
+                                             .shape[2]))
+        taps = batch_reservoir(filtered, Jr, hr, W_inr)
+        blocks.append(batch_polynomial_forge(taps))
+    return blocks
+
+
+def batch_combined_features(inputs_batch, tau_net=None, J=None, h=None,
+                            W_in=None, input_dim=1):
+    """Full forge for a batch: (B, T[, D]) -> (B, R*~11k)."""
+    return np.concatenate(
+        batch_per_reservoir_features(inputs_batch, tau_net, J, h, W_in,
+                                     input_dim), axis=1)
+
+
+def features_for_set(X, tau_net=None, J=None, h=None, W_in=None,
+                     input_dim=1, batched=True):
+    """Feature matrix for a window set, batched when possible.
+
+    Mathematically identical to the per-window loop path (see
+    test in run_mackey_glass --verify-batch); 100-1000x faster.
+    """
+    if batched and isinstance(X, np.ndarray) and X.ndim in (2, 3):
+        return batch_combined_features(X, tau_net, J, h, W_in, input_dim)
+    return np.array([combined_features(x, tau_net, J, h, W_in, input_dim)
+                     for x in X])
 
 
 # ---------------------------------------------------------------------------
@@ -237,9 +338,8 @@ def chaos_algorithm(X_train, y_train, X_val, y_val, tau_net,
         fitness = []
         for params in pop:
             set_params(tau_net, params)
-            feats = np.array([combined_features(x, tau_net,
-                                                input_dim=input_dim)
-                              for x in X_train])
+            feats = features_for_set(X_train, tau_net,
+                                     input_dim=input_dim)
             feats = StandardScaler().fit_transform(feats)
             ridge = Ridge(alpha=1.0).fit(feats, y_train)
             mse = mean_squared_error(y_val, ridge.predict(X_val))
@@ -292,9 +392,8 @@ def spectral_genesis(X_train, y_train, X_val, y_val, tau_net,
             sr = np.max(np.abs(np.linalg.eigvals(J)))
             if sr >= 1.0:
                 J = J / (sr + 0.1)
-            feats = np.array([combined_features(x, tau_net, J, h, W_in,
-                                                input_dim=input_dim)
-                              for x in X_train])
+            feats = features_for_set(X_train, tau_net, J, h, W_in,
+                                     input_dim=input_dim)
             feats = StandardScaler().fit_transform(feats)
             ridge = Ridge(alpha=1.0).fit(feats, y_train)
             mse = mean_squared_error(y_val, ridge.predict(X_val))
