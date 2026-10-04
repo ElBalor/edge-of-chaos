@@ -3,7 +3,8 @@
 Backprop-free quantum-reservoir computing: an evolved Liquid Time-Constant
 pre-gate, a 29-qubit Transverse-Field Ising reservoir (tanh-oscillator
 mean-field surrogate), a Volterra polynomial forge (~96k features), and a
-convex readout (ridge offline / sliding-window ridge or RLS online).
+convex readout (ridge offline / anchored sliding-window ridge online;
+RLS is kept only as a comparison baseline).
 
 The gate and the reservoir couplings are **never trained by gradients** —
 they are evolved by two genetic algorithms:
@@ -25,10 +26,6 @@ ghost_lattice/
     motion.py          Zeta critically-damped second-order trajectory ODE
     safety.py          EMG distress-stop detector, hardware relay model,
                        bench self-test
-    quantum.py         EXACT state-vector TFIM reservoir: 2^N amplitudes,
-                       Trotterised e^{-iHt} evolution, cached Ising
-                       diagonals, magnetisation taps (N up to 29;
-                       auto GPU/CPU by memory, GTX 1650 verified to N=24)
 run_mackey_glass.py    Mackey-Glass τ=17 benchmark (ESN / GRU / linear
                        baselines, full-ridge + block-diagonal RLS readouts)
 run_lorenz.py          Lorenz attractor benchmark (full RLS warm-started
@@ -36,33 +33,6 @@ run_lorenz.py          Lorenz attractor benchmark (full RLS warm-started
 run_bci.py             BCI motor-imagery classification (bandpower
                        features, per-reservoir selection, GA evolution;
                        --demo for synthetic selftest without the dataset)
-run_bci_loso.py        leave-one-subject-out BCI IV 2a evaluation
-                       (real .gdf loading via mne, or --demo synthetic
-                       multi-subject protocol selftest)
-validate_quantum.py    exact-vs-surrogate reservoir validation + Trotter
-                       convergence (see below)
-```
-
-## The quantum reservoir and its validation
-
-`ghost_lattice/quantum.py` simulates the literal 29-qubit Hamiltonian
-(H = Σ J_ij Z_i Z_j + Σ h_i X_i) on a 2^N-amplitude state vector: the ZZ
-gate is an exact diagonal phase (cached O(2^N) build), each X_i is an
-exact strided rotation, and the only approximation is O(dt^3) Trotter
-error. `validate_quantum.py` measures what the paper claims:
-
-- Trotter self-consistency: dt=0.1 vs 0.05 correlation 0.9895, order-1
-  vs order-2 0.9993 (the simulation is converged).
-- Downstream parity: identical ridge readouts on quantum vs surrogate
-  taps reach comparable NMSE (0.051-0.073 vs 0.070-0.085 at N=10-12) -
-  the quantum reservoir is a computing substrate at least as strong.
-- Spin trajectories differ (correlation ~ 0), as physics demands: a
-  coherent unitary evolution is not the dissipative mean-field map.
-  The claim the data supports is task-equivalence, not
-  trajectory-identity.
-
-Memory: N=29 wants ~11 GB free (GPU or RAM); the device is chosen
-automatically. N=24 runs 10 Trotter steps in ~4.7 s on the GTX 1650.
 ```
 
 ## Requirements
@@ -142,3 +112,4 @@ setups where the two runtimes clash.
 
 Heylel Yaka (Elbalor / The Digital Necromancer)
 License: CC BY-NC 4.0
+

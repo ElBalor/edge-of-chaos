@@ -428,32 +428,215 @@ def spectral_genesis(X_train, y_train, X_val, y_val, tau_net,
 # ---------------------------------------------------------------------------
 
 class SlidingWindowRidge:
-    """Periodically re-solve ridge on the last M samples.
+    """Online ridge: the convex readout adapting on a sliding window,
+    anchored to the calibration set.
 
-    Retains convex optimality while tracking non-stationary streams; a more
-    robust alternative to RLS in the high-dimensional forge space.
+    Every refit solves weighted ridge on (stream window) union (anchor),
+    on CALIBRATION-CENTRED data (the intercept is pinned to the
+    calibration operating point, so the forge - which has no constant
+    feature - never has to soak the offset into regularized
+    coefficients):
+
+        min_b  ||y_w - Xw b||^2 + w * ||y_a - Xa b||^2 + alpha * ||b||^2,
+
+    with w = ``anchor_weight`` the relative sum-of-squares weight of the
+    anchor, solved exactly in the DUAL, as an (m+na, m+na) system with
+    lam = sqrt(w) and C = Xw Xa':
+
+        K = [[Xw Xw' + alpha I,  lam C           ],
+             [lam C',            w Xa Xa' + alpha I]]
+        c = K^{-1} [y_w; lam y_a]
+        beta = Xw' c_w + lam Xa' c_a   (d,) - exact primal solution
+
+    so the feature dimension d (33,060+) never enters the SOLVE cost
+    (the per-slide cost is one (d, na) product for the new C row).
+    Predictions between refits use the current beta (one dot product).
+    Properties, by construction:
+
+    - strictly convex on every refit -> unique global optimum, every
+      refit lands in it (no descent, no learning rate, no plateau);
+    - fit() with anchor_weight = 1 reproduces the closed-form INTERCEPT
+      ridge on ALL of (X, y) exactly: the readout is centred on the
+      calibration operating point, the anchor IS the full centred
+      calibration set, and the window starts empty - every streamed
+      sample joins the next joint refit, so nothing is forgotten that
+      the window has not explicitly replaced;
+    - the anchor pins the readout to what was measured offline while the
+      window adapts to the stream; anchor_weight balances the trust
+      (0 = pure sliding window, large = hold the offline solution);
+      the refit is the exact global optimum of the weighted objective
+      above for every value of the weight.
+    - no P matrix to go unstable: this replaced RLS in the deployed
+      pipeline (RLS is kept in this module only as a comparison baseline).
+
+    The window Gram G = Xw Xw' and the cross Gram C = Xw Xa' are
+    maintained INCREMENTALLY: the window starts empty and grows by a
+    rank-1 Gram update per streamed sample, then each slide drops the
+    oldest row and appends the newest - a rank-2 correction on G and
+    one row on C. The anchor Gram Xa Xa' is computed once in fit(). The
+    exact primal solution is recovered from the dual every
+    ``refit_every`` slides; between refits predictions use the current
+    beta.
     """
 
-    def __init__(self, alpha=10.0, window=500):
-        self.alpha = alpha
-        self.window = window
-        self.recent_X = []
-        self.recent_y = []
-        self.model = Ridge(alpha=alpha)
+    def __init__(self, alpha=10.0, window=500, refit_every=25,
+                 anchor_weight=1.0):
+        self.alpha = float(alpha)
+        self.window = int(window)
+        self.refit_every = int(refit_every)
+        self.anchor_weight = float(anchor_weight)
+        self._ring = None    # (m, d) ring buffer of window features
+        self._y = None       # (m,) window targets, oldest first
+        self._head = 0       # ring index of the OLDEST sample
+        self._count = 0
+        self._G = None       # (m, m) dual Gram Xw Xw' (no alpha)
+        self.beta = None     # (d,) current primal solution
+        self._since_refit = 0
+        # Calibration anchor: the FULL calibration set, held fixed while
+        # the window slides over the stream. The window starts EMPTY and
+        # fills with stream samples; every refit solves weighted ridge
+        # on (window, anchor) jointly, so fit() with anchor_weight = 1
+        # is exactly the closed-form ridge on all of (X, y).
+        self._Xa = None      # (na, d) anchor features
+        self._ya = None      # (na,) anchor targets
+        self._Ga = None      # (na, na) anchor Gram Xa Xa'
+        self._C = None       # (m, na) cross Gram Xw Xa', age order
+        self._Kbuf = None    # (m+na, m+na) refit system buffer
 
-    def update(self, x, y):
-        self.recent_X.append(np.asarray(x, dtype=np.float64).ravel())
-        self.recent_y.append(float(y))
-        if len(self.recent_X) > self.window:
-            self.recent_X.pop(0)
-            self.recent_y.pop(0)
-        X = np.vstack(self.recent_X)
-        yy = np.hstack(self.recent_y)
-        self.model.fit(X, yy)
+    # -- internals ----------------------------------------------------------
+
+    def _window_X(self):
+        """Window features oldest-first from the ring."""
+        m, d = self._ring.shape
+        h = self._head
+        if self._count < m:
+            return self._ring[:self._count]
+        return np.vstack([self._ring[h:], self._ring[:h]])
+
+    def _refit(self):
+        X = self._window_X()
+        m = X.shape[0]
+        na = 0 if self._Xa is None else self._Xa.shape[0]
+        if na == 0 or self.anchor_weight == 0.0:
+            # Pure sliding window (no anchor): m x m dual system.
+            if m == 0:
+                self.beta = np.zeros(self._ring.shape[1])
+                return
+            K = self._G + self.alpha * np.eye(m)
+            c = np.linalg.solve(K, self._y)
+            self.beta = X.T @ c
+            return
+        lam = np.sqrt(self.anchor_weight)
+        # Assemble the (m+na, m+na) system inside the capacity-sized
+        # buffer using m-relative offsets (m = current window count,
+        # na = anchor size). All four blocks are written every refit.
+        m2 = m + na
+        K = self._Kbuf[:m2, :m2]
+        K[:m, :m] = self._G + self.alpha * np.eye(m)
+        K[:m, m:] = lam * self._C
+        K[m:, :m] = lam * self._C.T
+        K[m:, m:] = self.anchor_weight * self._Ga + self.alpha * np.eye(na)
+        h = np.concatenate([self._y, lam * self._ya])
+        c = np.linalg.solve(K, h)
+        self.beta = X.T @ c[:m] + lam * (self._Xa.T @ c[m:])
+
+    # -- public API ----------------------------------------------------------
+
+    def fit(self, X, y):
+        """Anchor on the full calibration set (X, y); window starts empty.
+
+        With anchor_weight = 1 the initial solution is EXACTLY the
+        closed-form intercept ridge on all of (X, y) - centring by the
+        calibration means turns the intercept ridge into a plain ridge -
+        and each streamed sample is absorbed by the next joint refit:
+        nothing is ever forgotten that the window has not explicitly
+        replaced, and the operating point stays pinned to calibration.
+        With anchor_weight = 0 the window is instead seeded from the
+        tail of (X, y) and the readout is a pure sliding window.
+        """
+        X = np.asarray(X, dtype=np.float64)
+        y = np.asarray(y, dtype=np.float64).ravel()
+        # Frozen calibration operating point (intercept pinning).
+        self._xbar = X.mean(axis=0)
+        self._ybar = float(y.mean())
+        X = X - self._xbar
+        y = y - self._ybar
+        n = len(X)
+        m = min(self.window, n)
+        if self.anchor_weight > 0.0:
+            # Anchored mode: hold the whole calibration set, start the
+            # window empty, fill it from the stream.
+            self._Xa = X.copy()
+            self._ya = y.copy()
+            self._Ga = self._Xa @ self._Xa.T
+            self._C = np.zeros((0, self._Xa.shape[0]))
+            self._Kbuf = np.empty((self.window + n, self.window + n))
+            self._ring = np.zeros((self.window, X.shape[1]))
+            self._y = np.zeros(0)
+            self._count = 0
+            self._head = 0
+            self._G = np.zeros((0, 0))
+        else:
+            # Legacy pure-window mode: seed the window from the tail.
+            self._Xa = None
+            self._ring = np.zeros((self.window, X.shape[1]))
+            self._ring[:m] = X[-m:]
+            self._y = y[-m:].copy()
+            self._count = m
+            self._head = 0
+            self._G = self._ring[:m] @ self._ring[:m].T
+        self._refit()
+        return self
 
     def predict(self, x):
-        return self.model.predict(
-            np.asarray(x, dtype=np.float64).reshape(1, -1))[0]
+        if self.beta is None:
+            raise RuntimeError("call fit() before predict()")
+        x = np.asarray(x, dtype=np.float64).ravel() - self._xbar
+        return float(x @ self.beta + self._ybar)
+
+    def update(self, x, y):
+        """Slide the window by one sample; refit on schedule."""
+        if self._ring is None:
+            raise RuntimeError("call fit() before update()")
+        x = np.asarray(x, dtype=np.float64).ravel() - self._xbar
+        y = float(y) - self._ybar
+        if self._count < self.window:
+            # warm-up: grow the Gram by one row/column
+            Xc = self._ring[:self._count]
+            cross = Xc @ x
+            self._G = np.block([[self._G, cross[:, None]],
+                                [cross[None, :],
+                                 np.array([[x @ x]])]])
+            self._ring[self._count] = x
+            self._y = np.append(self._y, y)
+            if self._Xa is not None and self.anchor_weight > 0.0:
+                self._C = np.vstack([self._C, x @ self._Xa.T])
+            self._count += 1
+        else:
+            # full: drop the oldest row/col, append the newest (rank-2).
+            # _G is maintained in AGE order (oldest row first, newest
+            # last), matching _y and _window_X; sliding in age space is
+            # simply G[1:, 1:] plus the new row/col. The ring's physical
+            # indices are only needed for the FEATURE window.
+            h = self._head
+            tail_idx = np.r_[h + 1:self.window, 0:h]   # survivors, age order
+            G_tail = self._G[1:, 1:]
+            cross = self._ring[tail_idx] @ x
+            self._G = np.block([[G_tail,
+                                 cross[:, None]],
+                                [cross[None, :],
+                                 np.array([[x @ x]])]])
+            self._ring[h] = x
+            self._y = np.append(self._y[1:], y)
+            if self._Xa is not None and self.anchor_weight > 0.0:
+                # C is kept in age order (oldest row first), matching _G:
+                # drop the oldest row, append the newest.
+                self._C = np.vstack([self._C[1:], x @ self._Xa.T])
+            self._head = (h + 1) % self.window
+        self._since_refit += 1
+        if self._since_refit >= self.refit_every:
+            self._refit()
+            self._since_refit = 0
 
 
 class GPUBlockDiagonalRLS:

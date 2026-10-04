@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Ghost-Lattice QNN - Lorenz attractor benchmark (3-variable forecast).
 
-Full RLS readout warm-started from the closed-form ridge solution, with
-linear / GRU / ESN baselines.
+Convex readout: closed-form ridge plus an online sliding-window dual ridge
+(streaming prediction with ring-buffer refits), against linear / GRU / ESN
+baselines.
 
 Author: Heylel Yaka (Elbalor / The Digital Necromancer)
 License: CC BY-NC 4.0
@@ -32,15 +33,13 @@ from ghost_lattice.core import (
     GENERATIONS_GENESIS,
     SPATIAL_R,
     EchoStateNetwork,
-    FullRLS,
+    SlidingWindowRidge,
     TauNet,
+    batch_per_reservoir_features,
     chaos_algorithm,
     combined_features,
     init_reservoir,
-    per_reservoir_features,
-    ridge_warm_start,
     rmse,
-    select_blocks,
     spectral_genesis,
 )
 
@@ -174,7 +173,7 @@ def main():
     print(f"ESN (200 neurons) RMSE: {esn_rmse:.6f}")
 
     # ----- Ghost-Lattice -----
-    print("\n=== Ghost-Lattice QNN (Full RLS, Ridge Warm-Started) ===")
+    print("\n=== Ghost-Lattice QNN (convex forge + ridge) ===")
     val_feats = np.array(
         [combined_features(x, input_dim=INPUT_DIM) for x in ga_val_X])
 
@@ -205,62 +204,18 @@ def main():
     ridge_rmse = rmse(test_y, ridge.predict(test_feats))
     print(f"Ridge RMSE (full forge, alpha={args.alpha}): {ridge_rmse:.6f}")
 
-    rls_test_rmse = rls_train_rmse = None
+    online_test_rmse = None
     if not args.quick:
-        print(f"\n--- Full RLS (top {K_PER_BLOCK} per reservoir, "
-              f"warm-started) ---")
-        train_blocks_raw = [
-            np.array([per_reservoir_features(x, tau_net_best, J_best,
-                                             h_best, W_in,
-                                             input_dim=INPUT_DIM)[r]
-                      for x in tqdm(train_X,
-                                    desc=f"Train Res {r + 1}")])
-            for r in range(SPATIAL_R)]
-        test_blocks_raw = [
-            np.array([per_reservoir_features(x, tau_net_best, J_best,
-                                             h_best, W_in,
-                                             input_dim=INPUT_DIM)[r]
-                      for x in test_X])
-            for r in range(SPATIAL_R)]
-
-        selectors, train_blocks_sel, test_blocks_sel = select_blocks(
-            train_blocks_raw, test_blocks_raw, train_y, k=K_PER_BLOCK)
-        train_rls = np.hstack(train_blocks_sel).astype(np.float64)
-        test_rls = np.hstack(test_blocks_sel).astype(np.float64)
-        total_feats = train_rls.shape[1]
-        print(f"Total RLS features: {total_feats}")
-
-        print("Computing ridge warm-start for full RLS...")
-        P_batch, beta_batch = ridge_warm_start(train_rls, train_y,
-                                               alpha=args.alpha)
-
-        train_gpu = torch.from_numpy(train_rls).to(DEVICE)
-        train_y_gpu = torch.from_numpy(
-            train_y.astype(np.float64)).to(DEVICE)
-        test_gpu = torch.from_numpy(test_rls).to(DEVICE)
-        test_y_gpu = torch.from_numpy(
-            test_y.astype(np.float64)).to(DEVICE)
-
-        rls = FullRLS(total_feats, alpha=args.alpha, device=DEVICE)
-        rls.P = torch.tensor(P_batch, dtype=torch.float64, device=DEVICE)
-        rls.beta = torch.tensor(beta_batch, dtype=torch.float64,
-                                device=DEVICE)
-
-        rls_train_preds = []
-        for i in tqdm(range(len(train_gpu)), desc="RLS train (GPU, warm)"):
-            rls.update(train_gpu[i], train_y_gpu[i])
-            rls_train_preds.append(rls.predict(train_gpu[i]).item())
-        rls_train_rmse = rmse(train_y, rls_train_preds)
-        print(f"RLS train RMSE (GPU, warm-started): "
-              f"{rls_train_rmse:.6f}")
-
-        rls_test_preds = []
-        for i in range(len(test_gpu)):
-            rls.update(test_gpu[i], test_y_gpu[i])
-            rls_test_preds.append(rls.predict(test_gpu[i]).item())
-        rls_test_rmse = rmse(test_y, rls_test_preds)
-        print(f"RLS test RMSE (GPU, online, warm-started): "
-              f"{rls_test_rmse:.6f}")
+        print("\n--- Online ridge (sliding-window dual, M=500, anchored) ---")
+        swr = SlidingWindowRidge(alpha=args.alpha, window=500,
+                                 refit_every=25).fit(train_feats, train_y)
+        swr_preds = []
+        for i in tqdm(range(len(test_feats)), desc="Online ridge"):
+            swr_preds.append(swr.predict(test_feats[i]))
+            swr.update(test_feats[i], test_y[i])
+        online_test_rmse = rmse(test_y, swr_preds)
+        print(f"Online ridge test RMSE (convex, sliding-window): "
+              f"{online_test_rmse:.6f}")
 
     print("\n" + "=" * 60)
     print(f"FINAL RESULTS - Lorenz attractor, {args.horizon}-step "
@@ -269,8 +224,10 @@ def main():
     print(f"{'Linear AR(10) on x,y,z':<25} {lr_rmse:>10.6f}")
     print(f"{'GRU (32 units)':<25} {gru_rmse:>10.6f}")
     print(f"{'ESN (200 neurons)':<25} {esn_rmse:>10.6f}")
-    if rls_test_rmse is not None:
-        print(f"{'Ghost-Lattice RLS (online)':<25} {rls_test_rmse:>10.6f}")
+    print(f"{'Ghost-Lattice Ridge':<25} {ridge_rmse:>10.6f}")
+    if online_test_rmse is not None:
+        print(f"{'Ghost-Lattice Online ridge':<25} "
+              f"{online_test_rmse:>10.6f}")
     print("=" * 60)
     print("\nGhost-Lattice QNN - Lorenz run complete.")
 

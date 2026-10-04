@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Ghost-Lattice QNN - Mackey-Glass tau=17 benchmark.
 
-Victus-optimised run: ESN / GRU / linear baselines, full-ridge readout on
-the complete forge, and GPU block-diagonal RLS on selected features.
+Victus-optimised run: ESN / GRU / linear baselines, closed-form ridge on
+the complete forge, and the online sliding-window dual ridge (M=500).
 
 Author: Heylel Yaka (Elbalor / The Digital Necromancer)
 License: CC BY-NC 4.0
@@ -27,19 +27,15 @@ from ghost_lattice.core import (
     GA_TRAIN_SIZE,
     GENERATIONS_CHAOS,
     GENERATIONS_GENESIS,
-    K_PER_BLOCK,
     POP_SIZE_CHAOS,
     POP_SIZE_GENESIS,
-    SPATIAL_R,
     EchoStateNetwork,
-    GPUBlockDiagonalRLS,
+    SlidingWindowRidge,
     TauNet,
     chaos_algorithm,
     combined_features,
     init_reservoir,
-    per_reservoir_features,
     rmse,
-    select_blocks,
     spectral_genesis,
 )
 
@@ -198,48 +194,18 @@ def main():
     ridge_rmse = rmse(test_y, ridge.predict(test_feats))
     print(f"Ridge RMSE (full forge, alpha={args.alpha}): {ridge_rmse:.6f}")
 
-    rls_test_rmse = rls_train_rmse = None
+    swr_test_rmse = None
     if not args.quick:
-        print(f"\n--- Block-Diagonal RLS (top {K_PER_BLOCK} per "
-              f"reservoir) ---")
-        train_blocks_raw = [
-            np.array([per_reservoir_features(x, tau_net_best, J_best,
-                                             h_best, W_in)[r]
-                      for x in tqdm(train_X, desc=f"Train Res {r + 1}")])
-            for r in range(SPATIAL_R)]
-        test_blocks_raw = [
-            np.array([per_reservoir_features(x, tau_net_best, J_best,
-                                             h_best, W_in)[r]
-                      for x in test_X])
-            for r in range(SPATIAL_R)]
-
-        selectors, train_blocks_sel, test_blocks_sel = select_blocks(
-            train_blocks_raw, test_blocks_raw, train_y, k=K_PER_BLOCK)
-        train_rls = np.hstack(train_blocks_sel).astype(np.float64)
-        test_rls = np.hstack(test_blocks_sel).astype(np.float64)
-        print(f"RLS per-block dimensions: {[K_PER_BLOCK] * SPATIAL_R}")
-        print(f"Total RLS features: {train_rls.shape[1]}")
-
-        train_gpu = torch.from_numpy(train_rls).to(DEVICE)
-        train_y_gpu = torch.from_numpy(train_y.astype(np.float64)).to(DEVICE)
-        test_gpu = torch.from_numpy(test_rls).to(DEVICE)
-        test_y_gpu = torch.from_numpy(test_y.astype(np.float64)).to(DEVICE)
-
-        rls = GPUBlockDiagonalRLS([K_PER_BLOCK] * SPATIAL_R,
-                                  alpha=args.alpha, device=DEVICE)
-        rls_train_preds = []
-        for i in tqdm(range(len(train_gpu)), desc="RLS train (GPU)"):
-            rls.update(train_gpu[i], train_y_gpu[i])
-            rls_train_preds.append(rls.predict(train_gpu[i]).item())
-        rls_train_rmse = rmse(train_y, rls_train_preds)
-        print(f"RLS train RMSE (GPU): {rls_train_rmse:.6f}")
-
-        rls_test_preds = []
-        for i in range(len(test_gpu)):
-            rls.update(test_gpu[i], test_y_gpu[i])
-            rls_test_preds.append(rls.predict(test_gpu[i]).item())
-        rls_test_rmse = rmse(test_y, rls_test_preds)
-        print(f"RLS test RMSE (GPU, online): {rls_test_rmse:.6f}")
+        print("\n--- Online ridge (sliding-window dual, M=500, anchored) ---")
+        swr = SlidingWindowRidge(alpha=args.alpha, window=500,
+                                 refit_every=25).fit(train_feats, train_y)
+        swr_preds = []
+        for i in tqdm(range(len(test_feats)), desc="Online ridge"):
+            swr_preds.append(swr.predict(test_feats[i]))
+            swr.update(test_feats[i], test_y[i])   # label known after use
+        swr_test_rmse = rmse(test_y, swr_preds)
+        print(f"Online ridge test RMSE (convex, sliding-window): "
+              f"{swr_test_rmse:.6f}")
 
     print("\n" + "=" * 60)
     print(f"FINAL RESULTS - Mackey-Glass tau=17, "
@@ -249,8 +215,8 @@ def main():
     print(f"{'GRU (32 units)':<25} {gru_rmse:>10.6f}")
     print(f"{'ESN (200 neurons)':<25} {esn_rmse:>10.6f}")
     print(f"{'Ghost-Lattice Ridge':<25} {ridge_rmse:>10.6f}")
-    if rls_test_rmse is not None:
-        print(f"{'Ghost-Lattice RLS (online)':<25} {rls_test_rmse:>10.6f}")
+    if swr_test_rmse is not None:
+        print(f"{'Ghost-Lattice Online ridge':<25} {swr_test_rmse:>10.6f}")
     print("=" * 60)
     print("\nGhost-Lattice QNN - Victus run complete.")
 
