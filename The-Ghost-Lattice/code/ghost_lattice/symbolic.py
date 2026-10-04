@@ -1,0 +1,147 @@
+"""Symbolic invariant extraction: Lasso pruning -> symbolic fit -> Lean 4.
+
+Paper Section 4: once the pipeline is frozen, the trained readout weights
+encode which forge features are predictive. This module prunes to a compact
+support (Lasso, ~top 2000 features), fits compact algebraic expressions to
+the surviving terms (greedy forward symbolic regression), and emits a
+Lean 4 theorem skeleton for formal verification of the extracted invariant.
+
+Author: Heylel Yaka 
+License: CC BY-NC 4.0
+"""
+
+from itertools import combinations_with_replacement
+
+import numpy as np
+from sklearn.linear_model import Lasso, LinearRegression
+from sklearn.metrics import mean_squared_error
+
+
+# ---------------------------------------------------------------------------
+# Forge feature naming
+# ---------------------------------------------------------------------------
+
+def forge_feature_names(n_taps):
+    """Human-readable names for one reservoir's polynomial forge output.
+
+    Mirrors ``polynomial_forge`` composition exactly:
+      degree-1:  s_i                       -> n_taps terms
+      degree-2:  s_i * s_j (i <= j)        -> n_taps(n_taps+1)/2 terms
+      cubes:     s_i^3                     -> n_taps terms
+      fourths:   s_i^4                     -> n_taps terms
+    """
+    names = [f"s{i}" for i in range(n_taps)]
+    names += [f"s{i}*s{j}"
+              for i, j in combinations_with_replacement(range(n_taps), 2)]
+    names += [f"s{i}^3" for i in range(n_taps)]
+    names += [f"s{i}^4" for i in range(n_taps)]
+    return names
+
+
+# ---------------------------------------------------------------------------
+# Stage 1: Lasso pruning
+# ---------------------------------------------------------------------------
+
+def lasso_prune(X, y, alpha=1e-3, max_features=2000):
+    """Keep only the most predictive forge features via L1 (Lasso).
+
+    Returns (indices, model). Indices are sorted by |coefficient|,
+    strongest first.
+    """
+    model = Lasso(alpha=alpha, max_iter=20000)
+    model.fit(X, y)
+    coef = np.abs(model.coef_)
+    order = np.argsort(coef)[::-1][:max_features]
+    idx = order[coef[order] > 0]
+    if len(idx) == 0:
+        idx = order[:min(32, len(order))]
+    return np.sort(idx), model
+
+
+# ---------------------------------------------------------------------------
+# Stage 2: compact symbolic fit (greedy forward selection)
+# ---------------------------------------------------------------------------
+
+def symbolic_fit(X, y, feature_names, max_terms=12):
+    """Greedy forward symbolic regression over surviving forge features.
+
+    Each step picks the single feature that best explains the current
+    residual (which may itself be a product term like ``s3*s7``), fits its
+    coefficient, and removes its contribution. Returns a dict with the
+    expression string, per-term coefficients, and the residual RMSE.
+    """
+    X = np.asarray(X, dtype=float)
+    y = np.asarray(y, dtype=float)
+    resid = y.copy()
+    terms = []
+    remaining = list(range(X.shape[1]))
+    for _ in range(max_terms):
+        best = None
+        for j in remaining:
+            col = X[:, j:j + 1]
+            lr = LinearRegression().fit(col, resid)
+            err = mean_squared_error(resid, lr.predict(col))
+            if best is None or err < best[1]:
+                best = (j, err, lr)
+        j, err, lr = best
+        if not np.isfinite(err) or err <= 0:
+            break
+        c = float(lr.coef_[0])
+        if c == 0.0:
+            break
+        terms.append({"feature": j, "name": feature_names[j],
+                      "coefficient": c})
+        resid = resid - lr.predict(X[:, j:j + 1])
+        remaining.remove(j)
+    intercept = float(np.mean(resid))
+    expr = " + ".join(f"({t['coefficient']:.6g})*{t['name']}"
+                      for t in terms)
+    if expr:
+        expr += f" + ({intercept:.6g})"
+    else:
+        expr = f"{intercept:.6g}"
+    return {"expression": expr, "terms": terms, "intercept": intercept,
+            "residual_rmse": float(np.sqrt(np.mean(resid ** 2))),
+            "n_features_input": X.shape[1]}
+
+
+# ---------------------------------------------------------------------------
+# Stage 3: Lean 4 emission
+# ---------------------------------------------------------------------------
+
+def _lean_name(name):
+    return name.replace("*", " * ").replace("^", "^ ")
+
+
+def emit_lean_theorem(fit, n_taps, invariant_name="ghost_invariant",
+                      tolerance="1e-6"):
+    """Emit a Lean 4 theorem skeleton asserting the fitted invariant.
+
+    The statement quantifies over the reservoir tap vector ``s`` and bounds
+    the residual between the symbolic expression and the learned target.
+    Formal verification proceeds by replacing ``sorry`` with the Mathlib
+    tactic proof once the invariant class is pinned down.
+    """
+    body = " + ".join(
+        f"({t['coefficient']:.10g}) * {_lean_name(t['name'])}"
+        for t in fit["terms"]) + f" + ({fit['intercept']:.10g})"
+    lines = [
+        "/- Auto-generated by the Ghost-Lattice symbolic extraction loop.",
+        "   Invariant candidate discovered from the trained ridge readout.",
+        "   Formalises the claim that the fitted algebraic expression tracks",
+        "   the decoded target within the stated tolerance. -/",
+        "import Mathlib.Tactic",
+        "",
+        f"variable {{s : Fin {n_taps} -> R}}",
+        "",
+        f"def {invariant_name}_expr (s : Fin {n_taps} -> R) : R :=",
+        "  " + body,
+        "",
+        f"theorem {invariant_name} (s : Fin {n_taps} -> R)",
+        f"    |target s - {invariant_name}_expr s < {tolerance} :=",
+        "  by",
+        "    -- Formal verification of the extracted invariant.",
+        "    sorry",
+        "",
+    ]
+    return "\n".join(lines)
