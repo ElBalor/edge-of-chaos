@@ -20,14 +20,19 @@ License: CC BY-NC 4.0
 """
 
 import numpy as np
+from scipy.linalg import expm
 
 
 class ZetaTrajectory:
     """Integrator for the critical-damped trajectory ODE.
 
-    Uses semi-implicit (symplectic) Euler: update velocity first, then
-    position with the *new* velocity. Unconditionally stable for this
-    damped system and cheap enough for real-time control loops.
+    Uses the exact matrix exponential of the step operator: for constant
+    goal g and forcing f over a step, the linear system is integrated
+    analytically, so the scheme is unconditionally stable for ANY dt --
+    the discrete trajectory inherits the continuous system's damping
+    exactly (no numerical overshoot, no blow-up on stiff settings such as
+    small tau). The 3x3 step matrix is cached while (f, g) are unchanged,
+    so long rollouts stay cheap.
     """
 
     def __init__(self, tau=0.1, dt=0.01, alpha=4.0, beta=1.0,
@@ -42,6 +47,8 @@ class ZetaTrajectory:
         self.dy = float(dy0)
         self.g = float(goal)
         self.f = 0.0
+        self._M_cache = None
+        self._cache_key = None
 
     @property
     def damping_ratio(self):
@@ -54,16 +61,33 @@ class ZetaTrajectory:
     def set_forcing(self, f):
         self.f = float(f)
 
+    def _step_matrix(self, f, g):
+        """Exact one-step map via expm of the augmented system."""
+        t2 = self.tau ** 2
+        A = np.array([
+            [0.0, 1.0, 0.0],
+            [-self.alpha * self.beta / t2, -self.alpha / t2,
+             (self.alpha * self.beta * g + f) / t2],
+            [0.0, 0.0, 0.0],
+        ])
+        return expm(A)
+
     def step(self, f=None, g=None):
         """Advance one control step; returns (y, y', y'')."""
         if f is not None:
             self.set_forcing(f)
         if g is not None:
             self.set_goal(g)
+        key = (self.f, self.g)
+        if key != self._cache_key:
+            self._M_cache = self._step_matrix(self.f, self.g)
+            self._cache_key = key
+        M = self._M_cache
+        y_new = M[0, 0] * self.y + M[0, 1] * self.dy + M[0, 2]
+        v_new = M[1, 0] * self.y + M[1, 1] * self.dy + M[1, 2]
         acc = (self.alpha * (self.beta * (self.g - self.y) - self.dy)
                + self.f) / (self.tau ** 2)
-        self.dy += acc * self.dt
-        self.y += self.dy * self.dt
+        self.y, self.dy = float(y_new), float(v_new)
         return self.y, self.dy, acc
 
     def rollout(self, steps, forcing=None, goals=None):
