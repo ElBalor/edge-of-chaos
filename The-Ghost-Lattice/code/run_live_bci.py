@@ -37,7 +37,7 @@ import torch
 
 from ghost_lattice.core import (
     DEVICE,
-    TauNet,
+    RheonTauNet,
     SlidingWindowRidge,
     chaos_algorithm,
     combined_features,
@@ -129,7 +129,7 @@ def get_pipeline(pipeline_path, simulate=True):
     if pipeline_path and os.path.exists(pipeline_path):
         blob = torch.load(pipeline_path, weights_only=False,
                           map_location=DEVICE)
-        tau_net = TauNet(input_dim=4).to(DEVICE)
+        tau_net = RheonTauNet(input_dim=4).to(DEVICE)
         tau_net.load_state_dict(blob["tau_net"])
         print(f"Loaded frozen pipeline from {pipeline_path}")
         return tau_net, blob["J"], blob["h"], blob["W_in"]
@@ -138,7 +138,7 @@ def get_pipeline(pipeline_path, simulate=True):
     X, y = synthetic_epochs(n_per_class=25)
     Xf = np.array([bandpower_features(e) for e in X])
     val_feats = np.array([combined_features(x) for x in Xf[:12]])
-    tau_net = TauNet(input_dim=4).to(DEVICE)
+    tau_net = RheonTauNet(input_dim=4).to(DEVICE)
     tau_net = chaos_algorithm(Xf[:100], y[:100], val_feats, y[:12],
                               tau_net, input_dim=1, pop_size=4,
                               generations=2)

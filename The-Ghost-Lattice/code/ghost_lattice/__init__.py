@@ -2,12 +2,18 @@
 
 A backprop-free quantum-reservoir computing architecture:
 
-    LNN pre-gate -> 29-qubit Ising reservoir -> Volterra polynomial forge
+    Rheon pre-gate -> 29-qubit Ising reservoir -> Volterra polynomial forge
     -> convex ridge readout (offline) / sliding-window ridge (online)
 
-The gate (TauNet) and the reservoir couplings (J, h) are never trained by
-gradients; they are evolved by the Chaos Algorithm and Spectral Genesis
-respectively. Only the convex ridge readout is solved for.
+The Rheon gate's tau-net and the reservoir couplings (J, h) are never
+trained by gradients; they are evolved by the Chaos Algorithm and Spectral
+Genesis respectively. Only the convex ridge readout is solved for.
+
+Rheon (from the Greek rheo, "to flow") is the continuous-time adaptive
+memory gate described in "Rheon: A Continuous-Time Adaptive Memory Gate
+with Physics-Conditioned Time Constants" (Yaka, 2026). The historic names
+TauNet / lnn_gate / batch_lnn_gate remain as compatibility aliases
+(frozen pipelines reference them by module path).
 
 Author: Heylel Yaka (Elbalor / The Digital Necromancer)
 License: CC BY-NC 4.0
@@ -18,8 +24,12 @@ from .core import (
     SPATIAL_R,
     TEMPORAL_V,
     POLY_DEGREE,
+    RheonTauNet,
     TauNet,
+    rheon_gate,
+    batch_rheon_gate,
     lnn_gate,
+    batch_lnn_gate,
     init_reservoir,
     simulate_reservoir,
     polynomial_forge,
@@ -38,8 +48,12 @@ __all__ = [
     "SPATIAL_R",
     "TEMPORAL_V",
     "POLY_DEGREE",
+    "RheonTauNet",
     "TauNet",
+    "rheon_gate",
+    "batch_rheon_gate",
     "lnn_gate",
+    "batch_lnn_gate",
     "init_reservoir",
     "simulate_reservoir",
     "polynomial_forge",
@@ -53,4 +67,4 @@ __all__ = [
     "FullRLS",
 ]
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"

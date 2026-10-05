@@ -1,7 +1,7 @@
 # Ghost-Lattice QNN — Code
 
-Backprop-free quantum-reservoir computing: an evolved Liquid Time-Constant
-pre-gate, a 29-qubit Transverse-Field Ising reservoir (tanh-oscillator
+Backprop-free quantum-reservoir computing: an evolved Rheon pre-gate, a
+29-qubit Transverse-Field Ising reservoir (tanh-oscillator
 mean-field surrogate), a Volterra polynomial forge (~96k features), and a
 convex readout (ridge offline / anchored sliding-window ridge online;
 RLS is kept only as a comparison baseline).
@@ -72,12 +72,12 @@ samples.
 
 ```python
 from ghost_lattice import (
-    TauNet, chaos_algorithm, init_reservoir, spectral_genesis,
+    RheonTauNet, chaos_algorithm, init_reservoir, spectral_genesis,
     combined_features, SlidingWindowRidge,
 )
 
 # evolve the gate
-tau_net = TauNet(input_dim=4).to("cuda")
+tau_net = RheonTauNet(input_dim=4).to("cuda")
 tau_net = chaos_algorithm(X_tr, y_tr, X_val_feats, y_val,
                           tau_net, input_dim=1, pop_size=8, generations=5)
 

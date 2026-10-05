@@ -1,9 +1,10 @@
 """Ghost-Lattice QNN core components.
 
-Implements the full pipeline: LNN pre-gate, 29-qubit Ising reservoir
-(tanh-oscillator surrogate), Volterra polynomial forge, convex readouts
-(ridge / sliding-window ridge / GPU RLS variants), and the two genetic
-algorithms (Chaos Algorithm, Spectral Genesis).
+Implements the full pipeline: Rheon pre-gate (continuous-time adaptive
+memory gate), 29-qubit Ising reservoir (tanh-oscillator surrogate),
+Volterra polynomial forge, convex readouts (ridge / sliding-window ridge
+/ GPU RLS variants), and the two genetic algorithms (Chaos Algorithm,
+Spectral Genesis).
 
 Author: Heylel Yaka 
 License: CC BY-NC 4.0
@@ -62,10 +63,17 @@ K_PER_BLOCK = 5000   # features kept per reservoir block for RLS
 
 
 # ---------------------------------------------------------------------------
-# Liquid Time-Constant (LNN) pre-gate
+# Rheon gate: continuous-time adaptive memory gate with physics-
+# conditioned time constants, solved by implicit backward Euler.
+#
+# Named from the Greek rheo, "to flow" (Rheon: A Continuous-Time Adaptive
+# Memory Gate with Physics-Conditioned Time Constants, Yaka 2026). Rheon
+# is a standalone mechanism; in the Ghost-Lattice it is the temporal
+# pre-filter, and its time-constant network is evolved by the Chaos
+# Algorithm rather than backpropagated.
 # ---------------------------------------------------------------------------
 
-class TauNet(nn.Module):
+class RheonTauNet(nn.Module):
     """Tiny network emitting a positive time-constant tau from recent input."""
 
     def __init__(self, input_dim=4):
@@ -80,13 +88,17 @@ class TauNet(nn.Module):
         return torch.abs(self.net(x)) + 0.5
 
 
-def lnn_gate(inputs, tau_net=None):
-    """Filter a (T,) or (T, D) signal through the adaptive LNN gate.
+def rheon_gate(inputs, tau_net=None):
+    """Filter a (T,) or (T, D) signal through the Rheon gate.
 
-    Discrete backward-Euler-style update:
+    Discrete backward-Euler update of the Rheon ODE
+        dx/dt = (I - x) / tau,        tau > 0
+    at unit sampling interval (alpha = 1 / (1 + dt/tau) with dt = 1):
         alpha = tau / (tau + 1)
         x[t]  = alpha * x[t-1] + (1 - alpha) * u[t]
-    with tau produced by the TauNet from a 4-step look-back window.
+    with tau produced by the RheonTauNet from a 4-step look-back window.
+    The amplification factor alpha is in (0, 1) for every positive tau,
+    so the linear memory term is unconditionally stable.
     """
     if tau_net is None:
         return inputs.copy()
@@ -153,7 +165,7 @@ def polynomial_forge(raw_vector):
 def per_reservoir_features(inputs, tau_net=None, J=None, h=None, W_in=None,
                            input_dim=1):
     """Filter, then run each of the R spatial reservoirs and forge features."""
-    filtered = lnn_gate(inputs, tau_net)
+    filtered = rheon_gate(inputs, tau_net)
     feats = []
     for r in range(SPATIAL_R):
         Jr, hr, W_inr = ((J, h, W_in) if J is not None
@@ -174,10 +186,10 @@ def combined_features(inputs, tau_net=None, J=None, h=None, W_in=None,
 # Batched fast path (identical math, all windows in parallel)
 # ---------------------------------------------------------------------------
 
-def batch_lnn_gate(inputs, tau_net=None):
-    """LNN gate for a batch of windows at once. inputs: (B, T) or (B, T, D).
+def batch_rheon_gate(inputs, tau_net=None):
+    """Rheon gate for a batch of windows at once. inputs: (B, T) or (B, T, D).
 
-    Same recurrence and the same TauNet as lnn_gate; the per-window
+    Same recurrence and the same RheonTauNet as rheon_gate; the per-window
     time constants are computed in one batched forward pass per step.
     """
     if tau_net is None:
@@ -236,7 +248,7 @@ def batch_per_reservoir_features(inputs_batch, tau_net=None, J=None,
     """Per-reservoir forge blocks for a batch; returns R arrays (B, ~11k)."""
     if inputs_batch.ndim == 2:
         inputs_batch = inputs_batch[:, :, None]
-    filtered = batch_lnn_gate(inputs_batch, tau_net)
+    filtered = batch_rheon_gate(inputs_batch, tau_net)
     blocks = []
     for r in range(SPATIAL_R):
         Jr, hr, W_inr = ((J, h, W_in) if J is not None
@@ -260,8 +272,8 @@ def features_for_set(X, tau_net=None, J=None, h=None, W_in=None,
                      input_dim=1, batched=True):
     """Feature matrix for a window set, batched when possible.
 
-    Mathematically identical to the per-window loop path (see
-    test in run_mackey_glass --verify-batch); 100-1000x faster.
+    Mathematically identical to the per-window loop path
+    (same recurrence, same tau-net calls); 100-1000x faster.
     """
     if batched and isinstance(X, np.ndarray) and X.ndim in (2, 3):
         return batch_combined_features(X, tau_net, J, h, W_in, input_dim)
@@ -330,7 +342,8 @@ def set_params(net, flat):
 
 def chaos_algorithm(X_train, y_train, X_val, y_val, tau_net,
                     input_dim, pop_size, generations):
-    """Evolve TauNet weights: tournament elites, uniform crossover, mutation."""
+    """Evolve RheonTauNet (tau-net) weights: tournament elites, uniform
+    crossover, mutation."""
     pop = [get_params(tau_net)
            + np.random.randn(get_params(tau_net).shape[0]).astype(np.float32) * 0.01
            for _ in range(pop_size)]
@@ -724,3 +737,14 @@ def ridge_warm_start(X, y, alpha=10.0):
 
 def rmse(y_true, y_pred):
     return float(np.sqrt(mean_squared_error(y_true, y_pred)))
+
+
+# ---------------------------------------------------------------------------
+# Compatibility aliases
+# ---------------------------------------------------------------------------
+# Historic names. Frozen torch.load pipelines reference ghost_lattice.core
+# symbols by module path, so these must keep resolving to the same classes.
+# New code should use the Rheon names.
+TauNet = RheonTauNet
+lnn_gate = rheon_gate
+batch_lnn_gate = batch_rheon_gate

@@ -31,7 +31,7 @@ from ghost_lattice.core import (
     POP_SIZE_GENESIS,
     EchoStateNetwork,
     SlidingWindowRidge,
-    TauNet,
+    RheonTauNet,
     chaos_algorithm,
     combined_features,
     init_reservoir,
@@ -168,7 +168,7 @@ def main():
     val_feats = np.array([combined_features(x) for x in ga_val_X])
 
     print("\n--- Chaos Algorithm ---")
-    tau_net = TauNet(input_dim=4).to(DEVICE)
+    tau_net = RheonTauNet(input_dim=4).to(DEVICE)
     tau_net_best = chaos_algorithm(ga_train_X, ga_train_y, val_feats,
                                    ga_val_y, tau_net, input_dim=1,
                                    pop_size=pop_c, generations=gen_c)

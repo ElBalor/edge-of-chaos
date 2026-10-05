@@ -2,7 +2,7 @@
 """Ghost-Lattice QNN - BCI motor-imagery classification (BCI IV 2a style).
 
 4-class motor imagery from multichannel EEG: bandpower features per
-channel per band -> LNN gate -> Ising reservoirs -> forge -> ridge
+channel per band -> Rheon gate -> Ising reservoirs -> forge -> ridge
 classifier. Gate and reservoir are evolved by the Chaos Algorithm and
 Spectral Genesis with classification accuracy as fitness, with per-reservoir
 feature selection keeping 500 features per reservoir (paper Section 5.2).
@@ -34,7 +34,7 @@ from ghost_lattice.core import (
     GENERATIONS_CHAOS,
     GENERATIONS_GENESIS,
     SPATIAL_R,
-    TauNet,
+    RheonTauNet,
     chaos_algorithm,
     combined_features,
     init_reservoir,
@@ -196,7 +196,7 @@ def main():
 
     gens = args.generations if args.generations else GENERATIONS_CHAOS
     print("\n--- Chaos Algorithm ---")
-    tau_net = TauNet(input_dim=4).to(DEVICE)
+    tau_net = RheonTauNet(input_dim=4).to(DEVICE)
     tau_net_best = chaos_algorithm(
         X_ga[:n_ga_fit], y_ga[:n_ga_fit], val_feats, y_ga[:n_val], tau_net,
         input_dim=INPUT_DIM, pop_size=2 if args.quick else POP_SIZE_CHAOS,

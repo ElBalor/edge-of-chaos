@@ -3,7 +3,7 @@
 
 Proper LOSO protocol for the paper's BCI claim: train on 8 subjects,
 test on the held-out 9th, rotate. Bandpower features feed the frozen
-Ghost-Lattice pipeline (LNN gate + Ising reservoirs + forge + ridge
+Ghost-Lattice pipeline (Rheon gate + Ising reservoirs + forge + ridge
 classifier); per-reservoir feature selection is fitted on training
 subjects only.
 
@@ -44,7 +44,7 @@ import torch
 from ghost_lattice.core import (
     DEVICE,
     SPATIAL_R,
-    TauNet,
+    RheonTauNet,
     chaos_algorithm,
     combined_features,
     init_reservoir,
@@ -144,7 +144,7 @@ def evolve_pipeline(X_train, y_train, quick=False, gens=None):
     val_feats = np.array([combined_features(x) for x in Xg[:40]])
 
     print("  Chaos Algorithm...")
-    tau_net = TauNet(input_dim=4).to(DEVICE)
+    tau_net = RheonTauNet(input_dim=4).to(DEVICE)
     tau_net = chaos_algorithm(Xg, yg, val_feats, yg[:40], tau_net,
                               input_dim=1, pop_size=pop, generations=gens)
     print("  Spectral Genesis...")

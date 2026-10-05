@@ -695,7 +695,7 @@
         for (let i = 0; i < 22; i++) eegScalar += state.eeg[i];
         eegScalar /= 22;
 
-        // LNN lowpass
+        // Rheon lowpass
         state.eeg_filtered = state.eeg_filtered * 0.9 + eegScalar * 0.1;
 
         // EMG stop countdown

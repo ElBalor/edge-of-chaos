@@ -34,7 +34,7 @@ from ghost_lattice.core import (
     SPATIAL_R,
     EchoStateNetwork,
     SlidingWindowRidge,
-    TauNet,
+    RheonTauNet,
     batch_per_reservoir_features,
     chaos_algorithm,
     combined_features,
@@ -178,7 +178,7 @@ def main():
         [combined_features(x, input_dim=INPUT_DIM) for x in ga_val_X])
 
     print("\n--- Chaos Algorithm ---")
-    tau_net = TauNet(input_dim=4 * INPUT_DIM).to(DEVICE)
+    tau_net = RheonTauNet(input_dim=4 * INPUT_DIM).to(DEVICE)
     tau_net_best = chaos_algorithm(ga_train_X, ga_train_y, val_feats,
                                    ga_val_y, tau_net, input_dim=INPUT_DIM,
                                    pop_size=pop_c, generations=gen_c)

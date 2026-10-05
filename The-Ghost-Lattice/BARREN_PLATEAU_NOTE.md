@@ -27,7 +27,7 @@ architecture contains no such object anywhere in its pipeline.
 
 The Ghost-Lattice pipeline is
 
-    x(t) --[LNN gate]--> u(t) --[Ising reservoir]--> s(t)
+    x(t) --[Rheon gate]--> u(t) --[Ising reservoir]--> s(t)
           --[Volterra forge]--> phi(s) --[ridge]--> y
 
 and every trainable decision lives in exactly one place:
