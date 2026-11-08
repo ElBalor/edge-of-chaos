@@ -1,0 +1,36 @@
+{
+  "project": "Ghost-Lattice TSPS miner",
+  "upstream_revision": "5660ff464526daaf2fe2d63e6d0a5ad1416071f5",
+  "network": {
+    "testnet_netuid": 3,
+    "mainnet_netuid": 8
+  },
+  "contract": {
+    "stream": "BTCUSD-5m",
+    "sample_count": 500,
+    "prediction_count": 10,
+    "prediction_length": 100,
+    "target": "BTC/USD close"
+  },
+  "artifacts": {
+    "adapter": "ghost_lattice_tsps.py",
+    "trainer": "train_tsps_readout.py",
+    "official_exporter": "export_tsps_windows.py",
+    "evidence_runner": "make_evidence.py",
+    "protocol_smoke": "protocol_smoke.py"
+  },
+  "official_data": {
+    "status": "official_history_generated_and_readout_trained",
+    "historical_file": "_tmp/tsps_upstream_20261106/runnable/historical_financial_data/data_training.taosfs",
+    "training_data": "data/tsps-official-5k.npz",
+    "artifact": "artifacts/tsps-official-5k",
+    "score_file": "artifacts/tsps-official-5k/official_score_full.json",
+    "weighted_rmse_mean": 0.10816238500768612,
+    "weighted_rmse_median": 0.09327470841174158,
+    "holdout_rows": 1000,
+    "score_definition": "Pinned TSPS Scoring.calculate_weighted_rmse (k=0.1) on held-out official-history windows; this is not a live validator rank.",
+    "latency_seconds_mean": 0.06020110149996254,
+    "latency_seconds_p95": 0.11217081999984653
+  },
+  "architecture_policy": "Ghost-Lattice core unchanged; only TSPS data contract and convex readout adapted."
+}
