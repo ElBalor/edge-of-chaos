@@ -123,15 +123,21 @@ registration grant so I can produce a live number. If the live number is
 weak, the grant did its job — it answered a question. It just answered it
 negatively.
 
-**"Where is your SS58?"** Not generated yet. A coldkey will be created
-locally before registration; I will post the public address in this thread
-the same day it exists, unprompted. That is the only item in this post I
-cannot pre-fill, and it is the only thing that would otherwise leave you
-waiting on me.
+**"Where is your SS58?"** Public coldkeypub:
 
-**"What is your timeline?"** Post today. Wallet local. Testnet registration
-as soon as the burn is funded. Live score captured over a real run, then
-reported here with the raw logs attached.
+```
+5FYep5qG4oDaSJLCywgjmSfTcm8sSmLM48dadoWBXNeBGWru
+```
+
+If a reviewer approves funding, the transfer is a standard Bittensor coldkey-to-coldkey transfer from the sender's own wallet. Example command a TAO holder would run from their own machine:
+
+```bash
+btcli wallet transfer --dest 5FYep5qG4oDaSJLCywgjmSfTcm8sSmLM48dadoWBXNeBGWru --amount 0.1 --wallet.name <sender_wallet> --wallet.hotkey <sender_hotkey>
+```
+
+This is the public coldkeypub only. The wallet's 24-word mnemonics are stored offline by the wallet owner and are never shared. The wallet was created locally and the release manifest records that under `safety`.
+
+**"What is your timeline?"** Post today. Wallet local and public address now in this thread. Testnet registration as soon as the burn is funded. Live score captured over a real run, then reported here with the raw logs attached.
 
 ---
 

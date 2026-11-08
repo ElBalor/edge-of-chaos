@@ -1,0 +1,46 @@
+{
+  "kind": "ghost_lattice_tsps_release_gate",
+  "python": "3.12.4",
+  "upstream_revision": "5660ff464526daaf2fe2d63e6d0a5ad1416071f5",
+  "artifact": "C:\\Users\\Heylel Yaka\\Desktop\\GRIMOIRE\\Edge-Of-Chaos\\The-Ghost-Lattice\\artifacts\\tsps-official-5k",
+  "files": {
+    "gate.pt": {
+      "bytes": 2687,
+      "sha256": "16fbeba1ecc00bf50326b2b0c283ad1eea18f7f609680d2822d5acd45f74b89a"
+    },
+    "model.npz": {
+      "bytes": 1336634,
+      "sha256": "cee6ced4166ed3c14ebe7a5701dcca36444e4a4847b3c0da3b626b2442a5e145"
+    },
+    "model.json": {
+      "bytes": 1091,
+      "sha256": "9114f001542ead66e6f16b61cf5759ebb58b4e785f78094e22c758e2c2c5f882"
+    },
+    "official_score_full.json": {
+      "bytes": 634,
+      "sha256": "a663af2176caf2307dc24cda29b959d2c9d6bee048e48cf47fff6b13473d443d"
+    }
+  },
+  "score": {
+    "artifact": "C:\\Users\\Heylel Yaka\\Desktop\\GRIMOIRE\\Edge-Of-Chaos\\The-Ghost-Lattice\\artifacts\\tsps-official-5k",
+    "data": "C:\\Users\\Heylel Yaka\\Desktop\\GRIMOIRE\\Edge-Of-Chaos\\The-Ghost-Lattice\\data\\tsps-official-5k.npz",
+    "official_history_holdout_rows": 1000,
+    "official_scoring": "TSPS Scoring.calculate_weighted_rmse, k=0.1",
+    "weighted_rmse_mean": 0.10816238500768612,
+    "weighted_rmse_median": 0.09327470841174158,
+    "sparse_rmse_mean": 0.24412631717736794,
+    "latency_seconds_mean": 0.06020110149996254,
+    "latency_seconds_p95": 0.11217081999984653,
+    "latency_seconds_max": 0.355576400001155
+  },
+  "network_plan": {
+    "testnet_netuid": 3,
+    "mainnet_netuid": 8
+  },
+  "safety": {
+    "wallet_created": true,
+    "registration_attempted": false,
+    "transfer_attempted": false
+  },
+  "next_live_step": "run the pinned TSPS miner on testnet netuid 3 after installing Bittensor and supplying a wallet explicitly"
+}
