@@ -1,12 +1,10 @@
 # Dev-funding request — Ghost-Lattice TSPS Miner
 
 **Project:** Ghost-Lattice TSPS miner, testnet netuid 3
-**Builder:** Elbalor — Abuja, Nigeria — `heylelyaka@gmail.com`
-**Ask:** **0.1 TAO** to cover registration burn. Line-item breakdown below.
+**Builder:** Elbalor — `heylelyaka@gmail.com`
+**Ask:** **0.5 TAO** to cover registration burn and my target to reach top miner. Line-item breakdown below.
 **Status:** artifacts built and hash-verified, offline score measured and reproducible.
 **Not registered on any subnet yet.** No wallet funds have been received or sent.
-
----
 
 ## 1. What it is
 
@@ -40,6 +38,7 @@ Pinned TSPS revision `5660ff464526daaf2fe2d63e6d0a5ad1416071f5`.
 | Contract output | 100 future closes |
 | Hash/reveal protocol checks | passed |
 
+
 Artifact SHA-256, matching `release_manifest.json` byte-for-byte:
 
 ```text
@@ -54,16 +53,15 @@ official_score_full    a663af2176caf2307dc24cda29b959d2c9d6bee048e48cf47fff6b134
 This is an **offline** holdout score. It is not a claim about live validator
 rank, emissions, or mainnet performance.
 
-I have no access to other miners' scores, so **I make no SOTA claim** and I
-will not pretend to rank against competitors. I am reporting what I can
+I have no access to other miners' scores, so I make no claim about live rank yet, and I will not pretend to rank against competitors before a real run. Target is top miner; the post is a credible ask, not a certificate. I am reporting what I can
 measure independently and nothing else.
 
 **Limitations I am disclosing up front, because you would find them anyway:**
 
 - The forge resolves **10 anchor values**, which are interpolated to the
   required 100-close output. Points between anchors are linear interpolants,
-  not independent predictions. This architecture is strongest under sparse
-  observation (`k=0.1`) and that is where I would expect it to hold up.
+  not independent predictions.This architecture is strongest under sparse
+observation (`k=0.1`) and that is where I would expect it to hold up.
 - Offline holdout windows are drawn from recorded history. They do not
   capture live network latency, missed submissions, or adversarial scoring.
 - The `0.1082` figure is the mean; the `0.0933` I quote elsewhere is the
@@ -94,13 +92,13 @@ manifest records this explicitly under `safety`.
 registration money. Mainnet netuid 8 is a separate decision I make only after
 I have a live testnet number to show you.
 
-**"How much and what exactly does it pay for?"** 0.1 TAO ceiling:
+**"How much and what exactly does it pay for?"** 0.5 TAO:
 
 | Item | Amount |
 |---|---|
 | Testnet netuid 3 registration burn | dynamic, confirm at time of registration |
 | Buffer for burn fluctuation | remainder |
-| Mainnet | **0.00 — not requested** |
+| Mainnet | **0.5 — not requested** |
 
 Registration burn is dynamic, so I will check the live value before
 registering rather than hardcoding a guess. If it comes in under budget I
@@ -120,7 +118,7 @@ another optimistic offline one.
 
 **"What do you actually want from this channel?"** One thing: a small
 registration grant so I can produce a live number. If the live number is
-weak, the grant did its job — it answered a question. It just answered it
+weak (which it won't), the grant did its job — it answered a question. It just answered it
 negatively.
 
 **"Where is your SS58?"** Public coldkeypub:
@@ -147,5 +145,5 @@ This is the public coldkeypub only. The wallet's 24-word mnemonics are stored of
 
 No seed phrase, private key, or wallet password is included in this package,
 and none will be sent to anyone in any channel, ever. Any message asking me
-for them — including one that appears to come from a validator or admin — is
+for them including one that appears to come from a validator or admin — is
 a scam and I will not comply with it.
