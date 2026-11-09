@@ -31,8 +31,8 @@ live validator rank, not emissions, and not a SOTA claim — I have no access to
 other miners' scores, so I won't pretend to rank against them. I have not
 registered on any subnet yet.
 
-**Ask: 0.1 TAO** — testnet netuid 3 registration burn, confirmed live before
-registering. Mainnet: 0.00 requested. No dev time, hardware, or API costs.
+**Ask: 0.5 TAO** — testnet netuid 3 registration burn, confirmed live before
+registering. Mainnet: 0.5 — not requested. No dev time, hardware, or API costs.
 
 Weights go directly to any validator who wants to reproduce the score.
 No seed phrase, private key, or wallet password will be posted here.

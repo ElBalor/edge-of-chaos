@@ -130,7 +130,7 @@ negatively.
 If a reviewer approves funding, the transfer is a standard Bittensor coldkey-to-coldkey transfer from the sender's own wallet. Example command a TAO holder would run from their own machine:
 
 ```bash
-btcli wallet transfer --dest 5FYep5qG4oDaSJLCywgjmSfTcm8sSmLM48dadoWBXNeBGWru --amount 0.1 --wallet.name <sender_wallet> --wallet.hotkey <sender_hotkey>
+btcli wallet transfer --dest 5FYep5qG4oDaSJLCywgjmSfTcm8sSmLM48dadoWBXNeBGWru --amount 0.5 --wallet.name <sender_wallet> --wallet.hotkey <sender_hotkey>
 ```
 
 This is the public coldkeypub only. The wallet's 24-word mnemonics are stored offline by the wallet owner and are never shared. The wallet was created locally and the release manifest records that under `safety`.
