@@ -1,0 +1,19 @@
+{
+  "source": "_tmp\\tsps_upstream_20261106\\runnable\\historical_financial_data\\data_training.taosfs",
+  "samples": 5000,
+  "windows_shape": [
+    5000,
+    500,
+    1
+  ],
+  "targets_shape": [
+    5000,
+    10
+  ],
+  "interval_ms": 300000,
+  "sample_count": 500,
+  "prediction_count": 10,
+  "prediction_length": 100,
+  "stride": 1,
+  "scaled_by": "TSPS model_feature_scaler"
+}

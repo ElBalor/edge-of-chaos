@@ -22,7 +22,10 @@ The raw machine-readable results are in `artifacts/tsps-official-5k/`:
 
 - `official_score_full.json` — full holdout score
 - `evidence.json` — pinned revision, artifact, shape, finite-output and latency evidence
-- `model.json`, `model.npz`, `gate.pt` — loadable model artifact
+- `model.json` — model config and training-split metrics
+- `model.npz`, `gate.pt` — trained weights, deliberately not published
+  (competitive subnet); sent on request and verifiable against the SHA-256
+  values pinned in `release_manifest.json`
 - `protocol_smoke.log` — hash/reveal smoke result
 
 ## Architecture preserved
@@ -42,10 +45,26 @@ Use the pinned TSPS revision:
 5660ff464526daaf2fe2d63e6d0a5ad1416071f5
 ```
 
+The exported dataset is committed at
+`The-Ghost-Lattice/data/tsps-official-5k.npz`, so you can train and score the
+published artifact directly and skip the regeneration step below. To rebuild the
+dataset from the upstream source instead:
+
+```bash
+git clone --depth 1 https://github.com/taoshidev/time-series-prediction-subnet.git tsps
+cd tsps
+git fetch --depth 1 origin 5660ff464526daaf2fe2d63e6d0a5ad1416071f5
+git checkout --detach 5660ff464526daaf2fe2d63e6d0a5ad1416071f5
+python runnable/generate_historical_data.py
+```
+
+Then, from the Edge-Of-Chaos root. `PYTHONPATH` must include the compat shim and
+the pinned TSPS checkout:
+
 ```powershell
-$env:PYTHONPATH='Edge-Of-Chaos\The-Ghost-Lattice\code'
+$env:PYTHONPATH='Edge-Of-Chaos\The-Ghost-Lattice\code;Edge-Of-Chaos\The-Ghost-Lattice\code\tsps_integration\tsps_compat;tsps'
 python Edge-Of-Chaos\The-Ghost-Lattice\code\tsps_integration\export_tsps_windows.py `
-  --historical _tmp\tsps_upstream_20261106\runnable\historical_financial_data\data_training.taosfs `
+  --historical tsps\runnable\historical_financial_data\data_training.taosfs `
   --output Edge-Of-Chaos\The-Ghost-Lattice\data\tsps-official-5k.npz `
   --max-samples 5000
 
@@ -62,6 +81,11 @@ python Edge-Of-Chaos\The-Ghost-Lattice\code\tsps_integration\evaluate_tsps_artif
 
 python Edge-Of-Chaos\The-Ghost-Lattice\code\tsps_integration\protocol_smoke.py
 ```
+
+Training uses `--seed 42` and `--alpha 1000.0` by default, matching the values
+recorded in `model.json`, so the readout is reproducible from the committed
+dataset without receiving the trained weights. Reading the score needs only
+`official_score_full.json`; regenerating the weights needs the dataset above.
 
 This evidence demonstrates reproducibility and protocol readiness. Live
 validator rank, emissions, registration cost, and grant approval remain
