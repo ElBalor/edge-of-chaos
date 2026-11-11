@@ -22,7 +22,8 @@ Everything below is public and clickable, no request needed:
 - Evidence artifacts and hashes: https://github.com/ElBalor/edge-of-chaos/tree/main/The-Ghost-Lattice/artifacts/tsps-official-5k
 - Full write-up: https://github.com/ElBalor/edge-of-chaos/blob/main/The-Ghost-Lattice/code/tsps_integration/DEV_FUNDING_POST.md
 
-The artifacts directory opens with a README that reconciles every figure,including the two numbers in there that look contradictory but are not. If a
+The artifacts directory opens with a README that reconciles every figure,
+including the two numbers in there that look contradictory but are not. If a
 number in this issue disagrees with the files, the files win and I want to
 know about it.
 
