@@ -1,0 +1,35 @@
+{
+  "kind": "tsps_adapter_evidence",
+  "official_score_status": "copied_from_pinned_evaluator",
+  "tsps_upstream_revision": "5660ff464526daaf2fe2d63e6d0a5ad1416071f5",
+  "tsps_repo_head": "5660ff464526daaf2fe2d63e6d0a5ad1416071f5",
+  "artifact": "C:\\Users\\Heylel Yaka\\Desktop\\GRIMOIRE\\Edge-Of-Chaos\\The-Ghost-Lattice\\artifacts\\tsps-official-5k",
+  "prediction_shape": [
+    100,
+    1
+  ],
+  "finite_prediction": true,
+  "runs": 3,
+  "latency_seconds": [
+    0.21770180000021355,
+    0.08347679999860702,
+    0.09203610000258777
+  ],
+  "latency_mean_seconds": 0.13107156666713612,
+  "latency_p95_seconds": 0.20513523000045097,
+  "python": "3.12.4",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "official_score_file": "C:\\Users\\Heylel Yaka\\Desktop\\GRIMOIRE\\Edge-Of-Chaos\\The-Ghost-Lattice\\artifacts\\tsps-official-5k\\official_score_full.json",
+  "official_score": {
+    "artifact": "C:\\Users\\Heylel Yaka\\Desktop\\GRIMOIRE\\Edge-Of-Chaos\\The-Ghost-Lattice\\artifacts\\tsps-official-5k",
+    "data": "C:\\Users\\Heylel Yaka\\Desktop\\GRIMOIRE\\Edge-Of-Chaos\\The-Ghost-Lattice\\data\\tsps-official-5k.npz",
+    "official_history_holdout_rows": 1000,
+    "official_scoring": "TSPS Scoring.calculate_weighted_rmse, k=0.1",
+    "weighted_rmse_mean": 0.10816238500768612,
+    "weighted_rmse_median": 0.09327470841174158,
+    "sparse_rmse_mean": 0.24412631717736794,
+    "latency_seconds_mean": 0.06020110149996254,
+    "latency_seconds_p95": 0.11217081999984653,
+    "latency_seconds_max": 0.355576400001155
+  }
+}

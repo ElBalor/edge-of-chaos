@@ -1,0 +1,2 @@
+class PagingFrom:
+    pass

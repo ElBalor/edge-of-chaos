@@ -1,0 +1,42 @@
+{
+  "model": "ghost-lattice-tsps",
+  "upstream_revision": "5660ff464526daaf2fe2d63e6d0a5ad1416071f5",
+  "seed": 42,
+  "input_shape": [
+    500,
+    1
+  ],
+  "sparse_output_shape": [
+    10
+  ],
+  "expanded_output_shape": [
+    100
+  ],
+  "train_rows": 4000,
+  "validation_rows": 1000,
+  "alpha": 1000.0,
+  "validation_rmse_sparse": 0.2793231322727216,
+  "source_metadata": {
+    "path": "C:\\Users\\Heylel Yaka\\Desktop\\GRIMOIRE\\Edge-Of-Chaos\\The-Ghost-Lattice\\data\\tsps-official-5k.json",
+    "sha256": "ed4aa33c3d721bf9b4e48de8c05c0e73607e0b9e374c2be16b6736be147982c3",
+    "metadata": {
+      "source": "_tmp\\tsps_upstream_20261106\\runnable\\historical_financial_data\\data_training.taosfs",
+      "samples": 5000,
+      "windows_shape": [
+        5000,
+        500,
+        1
+      ],
+      "targets_shape": [
+        5000,
+        10
+      ],
+      "interval_ms": 300000,
+      "sample_count": 500,
+      "prediction_count": 10,
+      "prediction_length": 100,
+      "stride": 1,
+      "scaled_by": "TSPS model_feature_scaler"
+    }
+  }
+}

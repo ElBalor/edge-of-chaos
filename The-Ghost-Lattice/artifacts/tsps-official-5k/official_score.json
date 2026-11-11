@@ -1,0 +1,12 @@
+{
+  "artifact": "C:\\Users\\Heylel Yaka\\Desktop\\GRIMOIRE\\Edge-Of-Chaos\\The-Ghost-Lattice\\artifacts\\tsps-official-5k",
+  "data": "C:\\Users\\Heylel Yaka\\Desktop\\GRIMOIRE\\Edge-Of-Chaos\\The-Ghost-Lattice\\data\\tsps-official-5k.npz",
+  "official_history_holdout_rows": 200,
+  "official_scoring": "TSPS Scoring.calculate_weighted_rmse, k=0.1",
+  "weighted_rmse_mean": 0.10813078865282738,
+  "weighted_rmse_median": 0.0913059389937434,
+  "sparse_rmse_mean": 0.20150417885145105,
+  "latency_seconds_mean": 0.13028931750008269,
+  "latency_seconds_p95": 0.21200385999873103,
+  "latency_seconds_max": 0.6861783999993349
+}

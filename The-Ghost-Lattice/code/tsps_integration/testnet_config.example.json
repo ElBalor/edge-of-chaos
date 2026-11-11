@@ -1,0 +1,13 @@
+{
+  "network": "test",
+  "netuid": 3,
+  "upstream_revision": "5660ff464526daaf2fe2d63e6d0a5ad1416071f5",
+  "model_artifact": "artifacts/tsps-official",
+  "sample_count": 500,
+  "prediction_count": 10,
+  "prediction_length": 100,
+  "stream_type": "BTCUSD-5m",
+  "wallet_name": "REPLACE_WITH_YOUR_WALLET",
+  "hotkey": "REPLACE_WITH_YOUR_HOTKEY",
+  "note": "Example only; never commit coldkey seeds or private keys."
+}
