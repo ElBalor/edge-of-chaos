@@ -1,8 +1,8 @@
 # Dev-funding request — Ghost-Lattice TSPS Miner
 
-**Project:** Ghost-Lattice TSPS miner, testnet netuid 3
+**Project:** Ghost-Lattice TSPS miner — testnet netuid 3, then mainnet netuid 8
 **Builder:** Elbalor — `heylelyaka@gmail.com`
-**Ask:** **0.5 TAO** to cover registration burn and my target to reach top miner. Line-item breakdown below.
+**Ask:** **0.5 TAO** to register on testnet netuid 3 **and** mainnet netuid 8, so the miner can actually compete for emissions instead of sitting as an offline benchmark. Line-item breakdown below.
 **Status:** artifacts built and hash-verified, offline score measured and reproducible.
 **Not registered on any subnet yet.** No wallet funds have been received or sent.
 
@@ -88,21 +88,26 @@ directly, along with the exact command that produced `official_score_full.json`.
 registration has been attempted, and no transfer has been made. The release
 manifest records this explicitly under `safety`.
 
-**"Testnet or mainnet?"** Testnet netuid 3 first. I am not asking for mainnet
-registration money. Mainnet netuid 8 is a separate decision I make only after
-I have a live testnet number to show you.
+**"Testnet or mainnet?"** Both, in that order. Testnet netuid 3 first — it is
+cheap and it produces a live number that proves the whole pipeline works end
+to end. Mainnet netuid 8 immediately after, because testnet pays nothing and
+mainnet registration is the only path to actually earning TAO. That is the
+point of building the miner. The 0.5 TAO covers both burns.
 
-**"How much and what exactly does it pay for?"** 0.5 TAO:
+**"How much and what exactly does it pay for?"** 0.5 TAO, split across two
+registrations:
 
 | Item | Amount |
 |---|---|
 | Testnet netuid 3 registration burn | dynamic, confirm at time of registration |
-| Buffer for burn fluctuation | remainder |
-| Mainnet | **0.5 — not requested** |
+| Mainnet netuid 8 registration burn | dynamic, confirm at time of registration |
+| Buffer for burn fluctuation across both | remainder |
 
-Registration burn is dynamic, so I will check the live value before
-registering rather than hardcoding a guess. If it comes in under budget I
-will report the exact amount spent and what is left. I am not asking for
+Registration burn is dynamic on both networks, so I will check the live value
+before each registration rather than hardcoding a guess. If both burns together
+come in under budget I will report the exact amount spent and what is left. If
+the mainnet burn alone would exhaust the grant, I will post that number and stop
+before the second registration rather than ask for more. I am not asking for
 development time, hardware, or API costs — the model already runs on my
 machine.
 
@@ -117,9 +122,10 @@ same words I used here. I would rather hand you a mediocre real number than
 another optimistic offline one.
 
 **"What do you actually want from this channel?"** One thing: a small
-registration grant so I can produce a live number. If the live number is
-weak (which it won't), the grant did its job — it answered a question. It just answered it
-negatively.
+registration grant covering both networks, so I can produce a live testnet
+number and then get the miner onto mainnet where it can earn. If the live
+number is weak, the grant did its job — it answered a question. It just
+answered it negatively.
 
 **"Where is your SS58?"** Public coldkeypub:
 
@@ -135,7 +141,7 @@ btcli wallet transfer --dest 5FYep5qG4oDaSJLCywgjmSfTcm8sSmLM48dadoWBXNeBGWru --
 
 This is the public coldkeypub only. The wallet's 24-word mnemonics are stored offline by the wallet owner and are never shared. The wallet was created locally and the release manifest records that under `safety`.
 
-**"What is your timeline?"** Post today. Wallet local and public address now in this thread. Testnet registration as soon as the burn is funded. Live score captured over a real run, then reported here with the raw logs attached.
+**"What is your timeline?"** Post today. Wallet local and public address now in this thread. Testnet registration as soon as the burn is funded, live score captured over a real run and reported here with the raw logs attached, then mainnet netuid 8 registration on the same grant.
 
 ---
 

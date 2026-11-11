@@ -5,7 +5,7 @@ posts in one message with room to spare. Copy everything between the rules.
 
 ---
 
-**Ghost-Lattice TSPS Miner — testnet deployment grant request**
+**Ghost-Lattice TSPS Miner — testnet + mainnet registration grant request**
 
 Builder: Elbalor · heylelyaka@gmail.com
 Full post: https://github.com/ElBalor/edge-of-chaos/blob/main/The-Ghost-Lattice/code/tsps_integration/DEV_FUNDING_POST.md
@@ -31,8 +31,12 @@ live validator rank, not emissions, and not a SOTA claim — I have no access to
 other miners' scores, so I won't pretend to rank against them. I have not
 registered on any subnet yet.
 
-**Ask: 0.5 TAO** — testnet netuid 3 registration burn, confirmed live before
-registering. Mainnet: 0.5 — not requested. No dev time, hardware, or API costs.
+**Ask: 0.5 TAO** — covers both registration burns: testnet netuid 3 first to
+prove the pipeline on a live run, then mainnet netuid 8 so the miner can
+actually compete for emissions. Both burns checked live before registering.
+No dev time, hardware, or API costs.
+
+SS58 (coldkeypub, public): `5FYep5qG4oDaSJLCywgjmSfTcm8sSmLM48dadoWBXNeBGWru`
 
 Weights go directly to any validator who wants to reproduce the score.
 No seed phrase, private key, or wallet password will be posted here.
@@ -46,8 +50,8 @@ than the holdout — so you shouldn't need to ask me anything to start.
 ## Notes before you post
 
 - Fill in nothing. The public post link already works; verify it opens first.
-- Do not add a wallet address until the wallet exists. A placeholder in a
-  funding channel reads as unfinished and gets ignored.
+- The SS58 in the block above is the real, already-created coldkeypub — no
+  placeholder to fill in. It is public by design; never post anything but this.
 - Post once. Reposting the same request daily is the fastest way to be muted
   in a grant channel — reviewers see it and it costs you credibility.
 - Expect days, not minutes. A grant is a person reading this and approving a
