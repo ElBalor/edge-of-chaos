@@ -1,4 +1,4 @@
-# Dev-funding request — Ghost-Lattice TSPS Miner
+# Dev-funding request: The Ghost-Lattice TSPS Miner (Quantum Neural Network AI)
 
 **Project:** Ghost-Lattice TSPS miner — testnet netuid 3, then mainnet netuid 8
 **Builder:** Elbalor — `heylelyaka@gmail.com`
@@ -38,6 +38,17 @@ Pinned TSPS revision `5660ff464526daaf2fe2d63e6d0a5ad1416071f5`.
 | Contract output | 100 future closes |
 | Hash/reveal protocol checks | passed |
 
+
+Verify directly, no request needed:
+
+- Evidence artifacts and hashes: https://github.com/ElBalor/edge-of-chaos/tree/main/The-Ghost-Lattice/artifacts/tsps-official-5k
+- Code and adapter: https://github.com/ElBalor/edge-of-chaos/tree/main/The-Ghost-Lattice/code/tsps_integration
+
+The artifacts directory opens with a README that reconciles the two figures
+in it that look contradictory but are not: the `0.2793` in `model.json` is
+the training-split validation metric, while the `0.2441` sparse RMSE is the
+official evaluator holdout. Same for the two latency numbers — one is the
+scoring loop, the other includes adapter serialization.
 
 Artifact SHA-256, matching `release_manifest.json` byte-for-byte:
 
@@ -147,7 +158,7 @@ This is the public coldkeypub only. The wallet's 24-word mnemonics are stored of
 
 ## 5. Contact
 
-`heylelyaka@gmail.com` — or reply in this thread.
+`heylelyaka@gmail.com`: or reply in this thread.
 
 No seed phrase, private key, or wallet password is included in this package,
 and none will be sent to anyone in any channel, ever. Any message asking me
