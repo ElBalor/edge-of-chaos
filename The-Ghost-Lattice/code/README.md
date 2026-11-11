@@ -111,5 +111,5 @@ setups where the two runtimes clash.
 ## Author
 
 Heylel Yaka (Elbalor / The Digital Necromancer)
-License: CC BY-NC 4.0
+License: AGPL 3.0
 
